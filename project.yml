@@ -1,68 +1,48 @@
 name: controller
-  options:
-    bundleIdPrefix: com.controller
-    deploymentTarget:
-      iOS: "17.0"
-    xcodeVersion: "16.2"
-    createIntermediateGroups: true
-    defaultConfig: Release
 
-  settings:
-    base:
-      PRODUCT_BUNDLE_IDENTIFIER: com.controller.app
-      SWIFT_VERSION: "5.0"
-      IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-      CODE_SIGNING_ALLOWED: NO
-      CODE_SIGN_IDENTITY: ""
-      CODE_SIGNING_REQUIRED: NO
-      AD_HOC_CODE_SIGNING_ALLOWED: YES
-      SWIFT_OBJC_BRIDGING_HEADER: controller/controller-Bridging-Header.h
-      HEADER_SEARCH_PATHS:
-        - $(SRCROOT)/controller/kexploit
-        - $(SRCROOT)/controller/kexploit/pe
-        - $(SRCROOT)/controller/kexploit/TaskRop
-        - $(SRCROOT)/controller/headers
-        - $(SRCROOT)/controller/lib/choma
-      LIBRARY_SEARCH_PATHS:
-        - $(SRCROOT)/controller/lib
-      OTHER_LDFLAGS:
-        - -lz
-        - -lcompression
-      GCC_PREPROCESSOR_DEFINITIONS:
-        - DEBUG=1
-        - $(inherited)
+options:
+  bundleIdPrefix: com.controller
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  createIntermediateGroups: true
+  defaultConfig: Release
 
-  targets:
-    controller:
-      type: application
-      platform: iOS
-      sources:
-        - path: controller
-          excludes:
-            - "**/*.md"
-            - "**/Assets.xcassets/**"
-            - "lib/choma/**"
-      info:
-        path: controller/Info.plist
-        properties:
-          UILaunchScreen: {}
-          UISupportedInterfaceOrientations:
-            - UIInterfaceOrientationPortrait
-          UIUserInterfaceStyle: Dark
-          LSRequiresIPhoneOS: true
-      entitlements:
-        path: controller/controller.entitlements
-      settings:
-        base:
-          ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-          ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-      dependencies:
-        - framework: controller/lib/libxpf.dylib
-          embed: true
-          codeSign: false
-        - framework: controller/lib/libgrabkernel2.dylib
-          embed: true
-          codeSign: false
-      resources:
-        - path: controller/assets/Assets.xcassets
-  
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.controller.app
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGN_IDENTITY: ""
+    CODE_SIGNING_REQUIRED: NO
+    AD_HOC_CODE_SIGNING_ALLOWED: YES
+    SWIFT_OBJC_BRIDGING_HEADER: controller/controller-Bridging-Header.h
+    HEADER_SEARCH_PATHS: "$(SRCROOT)/controller/kexploit $(SRCROOT)/controller/kexploit/pe $(SRCROOT)/controller/kexploit/TaskRop $(SRCROOT)/controller/headers"
+
+targets:
+  controller:
+    type: application
+    platform: iOS
+    sources:
+      - path: controller
+        excludes:
+          - "**/*.md"
+          - "assets/**"
+          - "lib/choma/**"
+    info:
+      path: controller/Info.plist
+    entitlements:
+      path: controller/controller.entitlements
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - framework: controller/lib/libxpf.dylib
+        embed: true
+        codeSign: false
+      - framework: controller/lib/libgrabkernel2.dylib
+        embed: true
+        codeSign: false
+    resources:
+      - path: controller/assets/Assets.xcassets
