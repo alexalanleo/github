@@ -1,83 +1,68 @@
 name: Build Unsigned IPA
 
-  on:
-    push:
-      branches: [ main ]
-    workflow_dispatch:
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
-  jobs:
-    build:
-      runs-on: macos-latest
-      timeout-minutes: 60
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
 
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-        - name: Select Xcode
-          run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      - name: Show Xcode version
+        run: xcodebuild -version
 
-        - name: Show Xcode version
-          run: xcodebuild -version
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document 2>/dev/null || true
 
-        - name: Install xcpretty
-          run: gem install xcpretty --no-document 2>/dev/null || true
+      - name: Build (unsigned)
+        run: |
+          xcodebuild build \
+            -project controller.xcodeproj \
+            -scheme controller \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build/ \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            PRODUCT_BUNDLE_IDENTIFIER=com.controller.app \
+            2>&1 | tee build_output.txt | xcpretty; exit ${PIPESTATUS[0]}
 
-        - name: Build (unsigned)
-          run: |
-            set -o pipefail
-            xcodebuild build \
-              -project controller.xcodeproj \
-              -scheme controller \
-              -configuration Release \
-              -destination "generic/platform=iOS" \
-              -derivedDataPath build/ \
-              CODE_SIGNING_ALLOWED=NO \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO \
-              AD_HOC_CODE_SIGNING_ALLOWED=YES \
-              PRODUCT_BUNDLE_IDENTIFIER=com.controller.app \
-              2>&1 | xcpretty || xcodebuild build \
-              -project controller.xcodeproj \
-              -scheme controller \
-              -configuration Release \
-              -destination "generic/platform=iOS" \
-              -derivedDataPath build/ \
-              CODE_SIGNING_ALLOWED=NO \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO \
-              AD_HOC_CODE_SIGNING_ALLOWED=YES \
-              PRODUCT_BUNDLE_IDENTIFIER=com.controller.app
+      - name: Package unsigned IPA
+        run: |
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          echo "Found app: $APP_PATH"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          codesign --remove-signature "Payload/$(basename "$APP_PATH")" 2>/dev/null || true
+          zip -r controller.ipa Payload/
+          echo "IPA size: $(du -sh controller.ipa | cut -f1)"
 
-        - name: Package unsigned IPA
-          run: |
-            APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
-            echo "Found app: $APP_PATH"
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ github.sha }}
+          path: build_output.txt
 
-            mkdir -p Payload
-            cp -r "$APP_PATH" Payload/
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: controller-unsigned-${{ github.sha }}
+          path: controller.ipa
+          retention-days: 30
 
-            codesign --remove-signature "Payload/$(basename "$APP_PATH")" 2>/dev/null || true
-
-            find "Payload/$(basename "$APP_PATH")" \( -name "*.dylib" -o -name "*.framework" \) | while read f; do
-              codesign --remove-signature "$f" 2>/dev/null || true
-            done
-
-            zip -r controller.ipa Payload/
-            echo "IPA size: $(du -sh controller.ipa | cut -f1)"
-
-        - name: Upload IPA artifact
-          uses: actions/upload-artifact@v4
-          with:
-            name: controller-unsigned-${{ github.sha }}
-            path: controller.ipa
-            retention-days: 30
-
-        - name: Attach to Release (on tag)
-          if: startsWith(github.ref, 'refs/tags/')
-          uses: softprops/action-gh-release@v2
-          with:
-            files: controller.ipa
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
+      - name: Attach to Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: controller.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
