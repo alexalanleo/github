@@ -1,68 +1,97 @@
-name: Build Unsigned IPA
+name: Build IPA
 
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    runs-on: macos-latest
-    timeout-minutes: 60
+    runs-on: macos-14
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set build time
+        run: echo "BUILD_TIME=$(TZ='America/New_York' date '+%B %d, %Y at %I:%M %p %Z')" >> $GITHUB_ENV
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: Install ldid
+        run: brew install ldid
 
-      - name: Generate Xcode project
-        run: xcodegen generate --spec project.yml
-
-      - name: List schemes
-        run: xcodebuild -list -project controller.xcodeproj
-
-      - name: Build (unsigned)
+      - name: Build Archive (unsigned)
         run: |
-          xcodebuild build \
+          xcodebuild archive \
             -project controller.xcodeproj \
             -scheme controller \
             -configuration Release \
             -destination "generic/platform=iOS" \
-            -derivedDataPath build/ \
-            CODE_SIGNING_ALLOWED=NO \
+            -archivePath "$RUNNER_TEMP/controller.xcarchive" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            LIBRARY_SEARCH_PATHS="$GITHUB_WORKSPACE/controller/lib"
 
-      - name: Package unsigned IPA
+      - name: Export and sign IPA with ldid
         run: |
-          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          mkdir -p "$RUNNER_TEMP/ipa"
+          APP_PATH=$(find "$RUNNER_TEMP/controller.xcarchive" -name "*.app" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app found in archive, listing archive contents:"
+            find "$RUNNER_TEMP/controller.xcarchive" -type f | head -40
+            exit 1
+          fi
           echo "Found app: $APP_PATH"
-          mkdir -p Payload
-          cp -r "$APP_PATH" Payload/
-          codesign --remove-signature "Payload/$(basename "$APP_PATH")" 2>/dev/null || true
-          find "Payload/$(basename "$APP_PATH")" \( -name "*.dylib" -o -name "*.framework" \) | while read f; do
-            codesign --remove-signature "$f" 2>/dev/null || true
-          done
-          zip -r controller.ipa Payload/
-          echo "IPA size: $(du -sh controller.ipa | cut -f1)"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -r "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/"
 
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: controller-unsigned-${{ github.sha }}
-          path: controller.ipa
-          retention-days: 30
+          BINARY="$RUNNER_TEMP/ipa/Payload/controller.app/controller"
+          echo "Signing binary with ldid: $BINARY"
+          ldid -Scontroller/controller.entitlements "$BINARY"
+          echo "ldid signing complete"
 
-      - name: Attach to Release (on tag)
-        if: startsWith(github.ref, 'refs/tags/')
+          cd "$RUNNER_TEMP/ipa"
+          zip -r "$RUNNER_TEMP/controller.ipa" Payload
+          echo "IPA created successfully"
+          ls -lh "$RUNNER_TEMP/controller.ipa"
+
+      - name: Publish IPA — Latest Build (main branch)
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          files: controller.ipa
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: latest
+          name: Latest Build
+          prerelease: true
+          make_latest: false
+          files: ${{ runner.temp }}/controller.ipa
+          body: |
+            Rolling build from the latest commit on `main`.
+
+            Built: ${{ env.BUILD_TIME }}
+
+            Unsigned IPA — sideload with Sideloadly, AltStore, or TrollStore.
+
+      - name: Publish IPA — Versioned Release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: controller ${{ github.ref_name }}
+          files: ${{ runner.temp }}/controller.ipa
+          body: |
+            ## controller ${{ github.ref_name }}
+
+            Unsigned IPA — sideload with Sideloadly, AltStore, or TrollStore.
+          draft: false
+          prerelease: false
