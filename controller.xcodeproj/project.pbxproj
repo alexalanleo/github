@@ -1,543 +1,824 @@
 // !$*UTF8*$!
 {
-	archiveVersion = 1;
-	classes = {
-	};
-	objectVersion = 77;
-	objects = {
+archiveVersion = 1;
+classes = {
+};
+objectVersion = 56;
+objects = {
 
 /* Begin PBXBuildFile section */
-		9F4A1D2F3C4E567890123456 /* controller/lib/libxpf.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9F4A1D2E3C4E567890123456 /* controller/lib/libxpf.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		9F4A1D423C4E567890123456 /* controller/lib/libgrabkernel2.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9F4A1D413C4E567890123456 /* controller/lib/libgrabkernel2.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+CC0001000000000000000001 /* controller.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000001 /* controller.swift */; };
+CC0001000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000002 /* ContentView.swift */; };
+CC0001000000000000000003 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000003 /* HomeView.swift */; };
+CC0001000000000000000004 /* IPAInstallerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000004 /* IPAInstallerView.swift */; };
+CC0001000000000000000005 /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000005 /* LogsView.swift */; };
+CC0001000000000000000006 /* RootManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000006 /* RootManagerView.swift */; };
+CC0001000000000000000007 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000007 /* SettingsView.swift */; };
+CC0001000000000000000008 /* controllermgr.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000008 /* controllermgr.swift */; };
+CC0001000000000000000009 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000009 /* Logger.swift */; };
+CC000100000000000000000A /* fetchkcache.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000A /* fetchkcache.swift */; };
+CC000100000000000000000B /* getbmhash.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000B /* getbmhash.swift */; };
+CC000100000000000000000C /* isdebugged.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000C /* isdebugged.swift */; };
+CC000100000000000000000D /* islcinstalled.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000D /* islcinstalled.swift */; };
+CC000100000000000000000E /* isunsupported.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000E /* isunsupported.swift */; };
+CC000100000000000000000F /* keepalive.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000F /* keepalive.swift */; };
+CC0001000000000000000010 /* resizetoapprox.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000010 /* resizetoapprox.swift */; };
+CC0001000000000000000011 /* respring.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000011 /* respring.swift */; };
+CC0001000000000000000012 /* IPAInstaller.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000012 /* IPAInstaller.m */; };
+CC0001000000000000000013 /* IconCacheClearer.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000013 /* IconCacheClearer.m */; };
+CC0001000000000000000014 /* VarCleanBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000014 /* VarCleanBridge.m */; };
+CC0001000000000000000020 /* PartyUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000020 /* PartyUI.swift */; };
+CC0001000000000000000021 /* AppInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000021 /* AppInfo.swift */; };
+CC0001000000000000000022 /* VariableBlur.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000022 /* VariableBlur.swift */; };
+CC0001000000000000000023 /* Alertinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000023 /* Alertinator.swift */; };
+CC0001000000000000000024 /* Exitinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000024 /* Exitinator.swift */; };
+CC0001000000000000000025 /* Hapticinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000025 /* Hapticinator.swift */; };
+CC0001000000000000000026 /* Shareinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000026 /* Shareinator.swift */; };
+CC0001000000000000000027 /* AppInfoCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000027 /* AppInfoCell.swift */; };
+CC0001000000000000000028 /* GetLicenseDict.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000028 /* GetLicenseDict.swift */; };
+CC0001000000000000000029 /* LicenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000029 /* LicenseView.swift */; };
+CC000100000000000000002A /* LinkCreditCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000002A /* LinkCreditCell.swift */; };
+CC000100000000000000002B /* WelcomeSheetRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000002B /* WelcomeSheetRow.swift */; };
+CC000100000000000000002C /* WelcomeSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000002C /* WelcomeSheetView.swift */; };
+CC000100000000000000002D /* ButtonLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000002D /* ButtonLabel.swift */; };
+CC000100000000000000002E /* FancyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000002E /* FancyButtonStyle.swift */; };
+CC000100000000000000002F /* NavigationLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000002F /* NavigationLabel.swift */; };
+CC0001000000000000000030 /* PrimaryButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000030 /* PrimaryButtonStyle.swift */; };
+CC0001000000000000000031 /* TinyButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000031 /* TinyButtonStyle.swift */; };
+CC0001000000000000000032 /* TranslucentButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000032 /* TranslucentButtonStyle.swift */; };
+CC0001000000000000000033 /* DesignStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000033 /* DesignStyle.swift */; };
+CC0001000000000000000034 /* FadeAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000034 /* FadeAnimation.swift */; };
+CC0001000000000000000035 /* OverlayBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000035 /* OverlayBackground.swift */; };
+CC0001000000000000000036 /* CompactAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000036 /* CompactAlert.swift */; };
+CC0001000000000000000037 /* InfoBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000037 /* InfoBadge.swift */; };
+CC0001000000000000000038 /* PlainAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000038 /* PlainAlert.swift */; };
+CC0001000000000000000039 /* TinyInfoPlatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000039 /* TinyInfoPlatter.swift */; };
+CC000100000000000000003A /* PlainToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000003A /* PlainToggle.swift */; };
+CC000100000000000000003B /* PlatterToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000003B /* PlatterToggle.swift */; };
+CC000100000000000000003C /* TextFieldBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000003C /* TextFieldBackground.swift */; };
+CC000100000000000000003D /* TextFieldButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000003D /* TextFieldButton.swift */; };
+CC000100000000000000003E /* HeaderDropdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000003E /* HeaderDropdown.swift */; };
+CC000100000000000000003F /* HeaderLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000003F /* HeaderLabel.swift */; };
+CC0001000000000000000040 /* SectionPlatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000040 /* SectionPlatter.swift */; };
+CC0001000000000000000041 /* ThemedHeaderLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000041 /* ThemedHeaderLabel.swift */; };
+CC0001000000000000000042 /* TerminalHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000042 /* TerminalHeader.swift */; };
+CC0001000000000000000043 /* TerminalPlatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000043 /* TerminalPlatter.swift */; };
+CC0001000000000000000050 /* darksword.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000050 /* darksword.m */; };
+CC0001000000000000000051 /* offsets.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000051 /* offsets.m */; };
+CC0001000000000000000052 /* utils.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000052 /* utils.m */; };
+CC0001000000000000000053 /* persistence.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000053 /* persistence.m */; };
+CC0001000000000000000054 /* root.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000054 /* root.m */; };
+CC0001000000000000000060 /* vfs.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000060 /* vfs.m */; };
+CC0001000000000000000061 /* sbx.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000061 /* sbx.m */; };
+CC0001000000000000000062 /* vnode.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000062 /* vnode.m */; };
+CC0001000000000000000063 /* apfs.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000063 /* apfs.m */; };
+CC0001000000000000000064 /* rc.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000064 /* rc.m */; };
+CC0001000000000000000070 /* RemoteCall.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000070 /* RemoteCall.m */; };
+CC0001000000000000000071 /* vm.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000071 /* vm.m */; };
+CC0001000000000000000072 /* exc.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000072 /* exc.m */; };
+CC0001000000000000000073 /* pac.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000073 /* pac.m */; };
+CC0001000000000000000074 /* thread.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000074 /* thread.m */; };
+CC0001000000000000000075 /* findcachedataoff.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000075 /* findcachedataoff.m */; };
+CC00010000000000000000D0 /* libgrabkernel2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CC00000000000000000000D0 /* libgrabkernel2.dylib */; };
+CC00010000000000000000D1 /* libxpf.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CC00000000000000000000D1 /* libxpf.dylib */; };
+CC00020000000000000000D0 /* libgrabkernel2.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CC00000000000000000000D0 /* libgrabkernel2.dylib */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+CC00020000000000000000D1 /* libxpf.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CC00000000000000000000D1 /* libxpf.dylib */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		9F4A1D313C4E567890123456 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				9F4A1D2F3C4E567890123456 /* controller/lib/libxpf.dylib in Embed Frameworks */,
-				9F4A1D423C4E567890123456 /* controller/lib/libgrabkernel2.dylib in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CC6845A02F86948300B08EB0 /* Embed App Clips */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
-			dstSubfolderSpec = 16;
-			files = (
-			);
-			name = "Embed App Clips";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		8F5C1F9B2D6A4E9D9F4B1A21 /* controller/kexploit/darksword.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = controller/kexploit/darksword.m; sourceTree = "<group>"; };
-		9F4A1D2E3C4E567890123456 /* controller/lib/libxpf.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = controller/lib/libxpf.dylib; sourceTree = "<group>"; };
-		9F4A1D413C4E567890123456 /* controller/lib/libgrabkernel2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = controller/lib/libgrabkernel2.dylib; sourceTree = "<group>"; };
-		CC1C8B392F71DF9C00206982 /* lara.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lara.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CC6842DF2F8311C300B08EB0 /* libSystem.B.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B.tbd; path = usr/lib/libSystem.B.tbd; sourceTree = SDKROOT; };
+CC00000000000000000000FF /* controller.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = controller.app; sourceTree = BUILT_PRODUCTS_DIR; };
+CC0000000000000000000001 /* controller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = controller.swift; sourceTree = "<group>"; };
+CC0000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+CC0000000000000000000003 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+CC0000000000000000000004 /* IPAInstallerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPAInstallerView.swift; sourceTree = "<group>"; };
+CC0000000000000000000005 /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
+CC0000000000000000000006 /* RootManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootManagerView.swift; sourceTree = "<group>"; };
+CC0000000000000000000007 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+CC0000000000000000000008 /* controllermgr.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = controllermgr.swift; sourceTree = "<group>"; };
+CC0000000000000000000009 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+CC000000000000000000000A /* fetchkcache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = fetchkcache.swift; sourceTree = "<group>"; };
+CC000000000000000000000B /* getbmhash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = getbmhash.swift; sourceTree = "<group>"; };
+CC000000000000000000000C /* isdebugged.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = isdebugged.swift; sourceTree = "<group>"; };
+CC000000000000000000000D /* islcinstalled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = islcinstalled.swift; sourceTree = "<group>"; };
+CC000000000000000000000E /* isunsupported.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = isunsupported.swift; sourceTree = "<group>"; };
+CC000000000000000000000F /* keepalive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = keepalive.swift; sourceTree = "<group>"; };
+CC0000000000000000000010 /* resizetoapprox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = resizetoapprox.swift; sourceTree = "<group>"; };
+CC0000000000000000000011 /* respring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = respring.swift; sourceTree = "<group>"; };
+CC0000000000000000000012 /* IPAInstaller.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = IPAInstaller.m; sourceTree = "<group>"; };
+CC0000000000000000000013 /* IconCacheClearer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = IconCacheClearer.m; sourceTree = "<group>"; };
+CC0000000000000000000014 /* VarCleanBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VarCleanBridge.m; sourceTree = "<group>"; };
+CC0000000000000000000020 /* PartyUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartyUI.swift; sourceTree = "<group>"; };
+CC0000000000000000000021 /* AppInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfo.swift; sourceTree = "<group>"; };
+CC0000000000000000000022 /* VariableBlur.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariableBlur.swift; sourceTree = "<group>"; };
+CC0000000000000000000023 /* Alertinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Alertinator.swift; sourceTree = "<group>"; };
+CC0000000000000000000024 /* Exitinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Exitinator.swift; sourceTree = "<group>"; };
+CC0000000000000000000025 /* Hapticinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hapticinator.swift; sourceTree = "<group>"; };
+CC0000000000000000000026 /* Shareinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shareinator.swift; sourceTree = "<group>"; };
+CC0000000000000000000027 /* AppInfoCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoCell.swift; sourceTree = "<group>"; };
+CC0000000000000000000028 /* GetLicenseDict.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetLicenseDict.swift; sourceTree = "<group>"; };
+CC0000000000000000000029 /* LicenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseView.swift; sourceTree = "<group>"; };
+CC000000000000000000002A /* LinkCreditCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCreditCell.swift; sourceTree = "<group>"; };
+CC000000000000000000002B /* WelcomeSheetRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeSheetRow.swift; sourceTree = "<group>"; };
+CC000000000000000000002C /* WelcomeSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeSheetView.swift; sourceTree = "<group>"; };
+CC000000000000000000002D /* ButtonLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonLabel.swift; sourceTree = "<group>"; };
+CC000000000000000000002E /* FancyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FancyButtonStyle.swift; sourceTree = "<group>"; };
+CC000000000000000000002F /* NavigationLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationLabel.swift; sourceTree = "<group>"; };
+CC0000000000000000000030 /* PrimaryButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryButtonStyle.swift; sourceTree = "<group>"; };
+CC0000000000000000000031 /* TinyButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinyButtonStyle.swift; sourceTree = "<group>"; };
+CC0000000000000000000032 /* TranslucentButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslucentButtonStyle.swift; sourceTree = "<group>"; };
+CC0000000000000000000033 /* DesignStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignStyle.swift; sourceTree = "<group>"; };
+CC0000000000000000000034 /* FadeAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FadeAnimation.swift; sourceTree = "<group>"; };
+CC0000000000000000000035 /* OverlayBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayBackground.swift; sourceTree = "<group>"; };
+CC0000000000000000000036 /* CompactAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactAlert.swift; sourceTree = "<group>"; };
+CC0000000000000000000037 /* InfoBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoBadge.swift; sourceTree = "<group>"; };
+CC0000000000000000000038 /* PlainAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlainAlert.swift; sourceTree = "<group>"; };
+CC0000000000000000000039 /* TinyInfoPlatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinyInfoPlatter.swift; sourceTree = "<group>"; };
+CC000000000000000000003A /* PlainToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlainToggle.swift; sourceTree = "<group>"; };
+CC000000000000000000003B /* PlatterToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatterToggle.swift; sourceTree = "<group>"; };
+CC000000000000000000003C /* TextFieldBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextFieldBackground.swift; sourceTree = "<group>"; };
+CC000000000000000000003D /* TextFieldButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextFieldButton.swift; sourceTree = "<group>"; };
+CC000000000000000000003E /* HeaderDropdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderDropdown.swift; sourceTree = "<group>"; };
+CC000000000000000000003F /* HeaderLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderLabel.swift; sourceTree = "<group>"; };
+CC0000000000000000000040 /* SectionPlatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionPlatter.swift; sourceTree = "<group>"; };
+CC0000000000000000000041 /* ThemedHeaderLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemedHeaderLabel.swift; sourceTree = "<group>"; };
+CC0000000000000000000042 /* TerminalHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalHeader.swift; sourceTree = "<group>"; };
+CC0000000000000000000043 /* TerminalPlatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalPlatter.swift; sourceTree = "<group>"; };
+CC0000000000000000000050 /* darksword.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = darksword.m; sourceTree = "<group>"; };
+CC000000000000000000050H /* darksword.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = darksword.h; sourceTree = "<group>"; };
+CC0000000000000000000051 /* offsets.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = offsets.m; sourceTree = "<group>"; };
+CC0000000000000000000052 /* utils.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = utils.m; sourceTree = "<group>"; };
+CC0000000000000000000053 /* persistence.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = persistence.m; sourceTree = "<group>"; };
+CC0000000000000000000054 /* root.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = root.m; sourceTree = "<group>"; };
+CC000000000000000000054H /* root.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = root.h; sourceTree = "<group>"; };
+CC000000000000000000055H /* compat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = compat.h; sourceTree = "<group>"; };
+CC0000000000000000000060 /* vfs.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = vfs.m; sourceTree = "<group>"; };
+CC000000000000000000060H /* vfs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = vfs.h; sourceTree = "<group>"; };
+CC0000000000000000000061 /* sbx.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = sbx.m; sourceTree = "<group>"; };
+CC000000000000000000061H /* sbx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sbx.h; sourceTree = "<group>"; };
+CC0000000000000000000062 /* vnode.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = vnode.m; sourceTree = "<group>"; };
+CC000000000000000000062H /* vnode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = vnode.h; sourceTree = "<group>"; };
+CC0000000000000000000063 /* apfs.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = apfs.m; sourceTree = "<group>"; };
+CC000000000000000000063H /* apfs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = apfs.h; sourceTree = "<group>"; };
+CC0000000000000000000064 /* rc.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = rc.m; sourceTree = "<group>"; };
+CC000000000000000000064H /* rc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = rc.h; sourceTree = "<group>"; };
+CC000000000000000000065H /* xpaci.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = xpaci.h; sourceTree = "<group>"; };
+CC0000000000000000000070 /* RemoteCall.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RemoteCall.m; sourceTree = "<group>"; };
+CC000000000000000000070H /* RemoteCall.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCall.h; sourceTree = "<group>"; };
+CC0000000000000000000071 /* vm.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = vm.m; sourceTree = "<group>"; };
+CC000000000000000000071H /* vm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = vm.h; sourceTree = "<group>"; };
+CC0000000000000000000072 /* exc.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = exc.m; sourceTree = "<group>"; };
+CC000000000000000000072H /* exc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = exc.h; sourceTree = "<group>"; };
+CC0000000000000000000073 /* pac.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = pac.m; sourceTree = "<group>"; };
+CC000000000000000000073H /* pac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pac.h; sourceTree = "<group>"; };
+CC0000000000000000000074 /* thread.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = thread.m; sourceTree = "<group>"; };
+CC000000000000000000074H /* thread.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = thread.h; sourceTree = "<group>"; };
+CC0000000000000000000075 /* findcachedataoff.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = findcachedataoff.m; sourceTree = "<group>"; };
+CC000000000000000000075H /* privateapi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = privateapi.h; sourceTree = "<group>"; };
+CC00000000000000000000A0 /* controller-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "controller-Bridging-Header.h"; sourceTree = "<group>"; };
+CC00000000000000000000A1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+CC00000000000000000000A2 /* controller.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = controller.entitlements; sourceTree = "<group>"; };
+CC00000000000000000000B0 /* libgrabkernel2.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = libgrabkernel2.h; sourceTree = "<group>"; };
+CC00000000000000000000B1 /* xpf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = xpf.h; sourceTree = "<group>"; };
+CC00000000000000000000B2 /* fileport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fileport.h; sourceTree = "<group>"; };
+CC00000000000000000000D0 /* libgrabkernel2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgrabkernel2.dylib; path = libgrabkernel2.dylib; sourceTree = "<group>"; };
+CC00000000000000000000D1 /* libxpf.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libxpf.dylib; path = libxpf.dylib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		CC70C4A12F78D4C10052726B /* Exceptions for "controller" folder in "controller" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = CC1C8B382F71DF9C00206982 /* lara */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		CC1C8B3B2F71DF9C00206982 /* lara */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				CC70C4A12F78D4C10052726B /* Exceptions for "controller" folder in "controller" target */,
-			);
-			path = lara;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
-
 /* Begin PBXFrameworksBuildPhase section */
-		CC1C8B362F71DF9C00206982 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+CC00F0000000000000000001 /* Frameworks */ = {
+isa = PBXFrameworksBuildPhase;
+buildActionMask = 2147483647;
+files = (
+CC00010000000000000000D0 /* libgrabkernel2.dylib in Frameworks */,
+CC00010000000000000000D1 /* libxpf.dylib in Frameworks */,
+);
+runOnlyForDeploymentPostprocessing = 0;
+};
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+CC00E0000000000000000001 /* Embed Frameworks */ = {
+isa = PBXCopyFilesBuildPhase;
+buildActionMask = 2147483647;
+dstPath = "";
+dstSubfolderSpec = 10;
+files = (
+CC00020000000000000000D0 /* libgrabkernel2.dylib in Embed Frameworks */,
+CC00020000000000000000D1 /* libxpf.dylib in Embed Frameworks */,
+);
+name = "Embed Frameworks";
+runOnlyForDeploymentPostprocessing = 0;
+};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXGroup section */
-		15F023F42FBB9510004BD090 /* Dock */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Dock;
-			sourceTree = "<group>";
-		};
-		15F023F72FBB9510004BD090 /* Folder */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Folder;
-			sourceTree = "<group>";
-		};
-		15F023FB2FBB9510004BD090 /* FolderBG */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = FolderBG;
-			sourceTree = "<group>";
-		};
-		15F023FE2FBB9510004BD090 /* LibraryFolder */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = LibraryFolder;
-			sourceTree = "<group>";
-		};
-		15F024012FBB9510004BD090 /* Module */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Module;
-			sourceTree = "<group>";
-		};
-		15F024042FBB9510004BD090 /* Notif */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Notif;
-			sourceTree = "<group>";
-		};
-		15F024072FBB9510004BD090 /* NotifShadow */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = NotifShadow;
-			sourceTree = "<group>";
-		};
-			isa = PBXGroup;
-			children = (
-				15F023F42FBB9510004BD090 /* Dock */,
-				15F023F72FBB9510004BD090 /* Folder */,
-				15F023FB2FBB9510004BD090 /* FolderBG */,
-				15F023FE2FBB9510004BD090 /* LibraryFolder */,
-				15F024012FBB9510004BD090 /* Module */,
-				15F024042FBB9510004BD090 /* Notif */,
-				15F024072FBB9510004BD090 /* NotifShadow */,
-			);
-			sourceTree = "<group>";
-		};
-			isa = PBXGroup;
-			children = (
-			);
-			sourceTree = "<group>";
-		};
-			isa = PBXGroup;
-			children = (
-			);
-			sourceTree = "<group>";
-		};
-		CC1C8B302F71DF9C00206982 = {
-			isa = PBXGroup;
-			children = (
-				CC1C8B3B2F71DF9C00206982 /* lara */,
-				CC1C8B3A2F71DF9C00206982 /* Products */,
-				CC1C8B822F72C8E000206982 /* Recovered References */,
-				CC6842DE2F8311C300B08EB0 /* Frameworks */,
-			);
-			sourceTree = "<group>";
-		};
-		CC1C8B3A2F71DF9C00206982 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				CC1C8B392F71DF9C00206982 /* lara.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		CC1C8B822F72C8E000206982 /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				8F5C1F9B2D6A4E9D9F4B1A21 /* controller/kexploit/darksword.m */,
-				9F4A1D2E3C4E567890123456 /* controller/lib/libxpf.dylib */,
-				9F4A1D413C4E567890123456 /* controller/lib/libgrabkernel2.dylib */,
-			);
-			name = "Recovered References";
-			sourceTree = "<group>";
-		};
-		CC6842DE2F8311C300B08EB0 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				CC6842DF2F8311C300B08EB0 /* libSystem.B.tbd */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
+CC00G0000000000000000000 /* MainGroup */ = {
+isa = PBXGroup;
+children = (
+CC00G0000000000000000001 /* controller */,
+CC00G0000000000000000002 /* Products */,
+);
+sourceTree = "<group>";
+};
+CC00G0000000000000000002 /* Products */ = {
+isa = PBXGroup;
+children = (
+CC00000000000000000000FF /* controller.app */,
+);
+name = Products;
+sourceTree = "<group>";
+};
+CC00G0000000000000000001 /* controller */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000001 /* controller.swift */,
+CC00000000000000000000A0 /* controller-Bridging-Header.h */,
+CC00000000000000000000A1 /* Info.plist */,
+CC00000000000000000000A2 /* controller.entitlements */,
+CC00G000000000000000000V /* views */,
+CC00G000000000000000000C /* classes */,
+CC00G000000000000000000F /* funcs */,
+CC00G000000000000000000P /* PartyUI */,
+CC00G0000000000000000010 /* kexploit */,
+CC00G0000000000000000040 /* headers */,
+CC00G0000000000000000050 /* lib */,
+);
+path = controller;
+sourceTree = "<group>";
+};
+CC00G000000000000000000V /* views */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000002 /* ContentView.swift */,
+CC0000000000000000000003 /* HomeView.swift */,
+CC0000000000000000000004 /* IPAInstallerView.swift */,
+CC0000000000000000000005 /* LogsView.swift */,
+CC0000000000000000000006 /* RootManagerView.swift */,
+CC0000000000000000000007 /* SettingsView.swift */,
+);
+path = views;
+sourceTree = "<group>";
+};
+CC00G000000000000000000C /* classes */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000008 /* controllermgr.swift */,
+CC0000000000000000000009 /* Logger.swift */,
+CC0000000000000000000012 /* IPAInstaller.m */,
+CC0000000000000000000013 /* IconCacheClearer.m */,
+CC0000000000000000000014 /* VarCleanBridge.m */,
+);
+path = classes;
+sourceTree = "<group>";
+};
+CC00G000000000000000000F /* funcs */ = {
+isa = PBXGroup;
+children = (
+CC000000000000000000000A /* fetchkcache.swift */,
+CC000000000000000000000B /* getbmhash.swift */,
+CC000000000000000000000C /* isdebugged.swift */,
+CC000000000000000000000D /* islcinstalled.swift */,
+CC000000000000000000000E /* isunsupported.swift */,
+CC000000000000000000000F /* keepalive.swift */,
+CC0000000000000000000010 /* resizetoapprox.swift */,
+CC0000000000000000000011 /* respring.swift */,
+);
+path = funcs;
+sourceTree = "<group>";
+};
+CC00G000000000000000000P /* PartyUI */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000020 /* PartyUI.swift */,
+CC00G00000000000000000PA /* App */,
+CC00G00000000000000000PU /* UI */,
+);
+path = PartyUI;
+sourceTree = "<group>";
+};
+CC00G00000000000000000PA /* App */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000021 /* AppInfo.swift */,
+CC00G0000000000000000PA1 /* Extensions */,
+CC00G0000000000000000PA2 /* Functions */,
+CC00G0000000000000000PA3 /* Settings */,
+CC00G0000000000000000PA4 /* WelcomeSheet */,
+);
+path = App;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PA1 /* Extensions */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000022 /* VariableBlur.swift */,
+);
+path = Extensions;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PA2 /* Functions */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000023 /* Alertinator.swift */,
+CC0000000000000000000024 /* Exitinator.swift */,
+CC0000000000000000000025 /* Hapticinator.swift */,
+CC0000000000000000000026 /* Shareinator.swift */,
+);
+path = Functions;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PA3 /* Settings */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000027 /* AppInfoCell.swift */,
+CC0000000000000000000028 /* GetLicenseDict.swift */,
+CC0000000000000000000029 /* LicenseView.swift */,
+CC000000000000000000002A /* LinkCreditCell.swift */,
+);
+path = Settings;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PA4 /* WelcomeSheet */ = {
+isa = PBXGroup;
+children = (
+CC000000000000000000002B /* WelcomeSheetRow.swift */,
+CC000000000000000000002C /* WelcomeSheetView.swift */,
+);
+path = WelcomeSheet;
+sourceTree = "<group>";
+};
+CC00G00000000000000000PU /* UI */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000033 /* DesignStyle.swift */,
+CC00G0000000000000000PU1 /* Buttons */,
+CC00G0000000000000000PU2 /* Effects */,
+CC00G0000000000000000PU3 /* Indicators */,
+CC00G0000000000000000PU4 /* Inputs */,
+CC00G0000000000000000PU5 /* Lists */,
+CC00G0000000000000000PU6 /* Terminal */,
+);
+path = UI;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PU1 /* Buttons */ = {
+isa = PBXGroup;
+children = (
+CC000000000000000000002D /* ButtonLabel.swift */,
+CC000000000000000000002E /* FancyButtonStyle.swift */,
+CC000000000000000000002F /* NavigationLabel.swift */,
+CC0000000000000000000030 /* PrimaryButtonStyle.swift */,
+CC0000000000000000000031 /* TinyButtonStyle.swift */,
+CC0000000000000000000032 /* TranslucentButtonStyle.swift */,
+);
+path = Buttons;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PU2 /* Effects */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000034 /* FadeAnimation.swift */,
+CC0000000000000000000035 /* OverlayBackground.swift */,
+);
+path = Effects;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PU3 /* Indicators */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000036 /* CompactAlert.swift */,
+CC0000000000000000000037 /* InfoBadge.swift */,
+CC0000000000000000000038 /* PlainAlert.swift */,
+CC0000000000000000000039 /* TinyInfoPlatter.swift */,
+);
+path = Indicators;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PU4 /* Inputs */ = {
+isa = PBXGroup;
+children = (
+CC000000000000000000003A /* PlainToggle.swift */,
+CC000000000000000000003B /* PlatterToggle.swift */,
+CC000000000000000000003C /* TextFieldBackground.swift */,
+CC000000000000000000003D /* TextFieldButton.swift */,
+);
+path = Inputs;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PU5 /* Lists */ = {
+isa = PBXGroup;
+children = (
+CC000000000000000000003E /* HeaderDropdown.swift */,
+CC000000000000000000003F /* HeaderLabel.swift */,
+CC0000000000000000000040 /* SectionPlatter.swift */,
+CC0000000000000000000041 /* ThemedHeaderLabel.swift */,
+);
+path = Lists;
+sourceTree = "<group>";
+};
+CC00G0000000000000000PU6 /* Terminal */ = {
+isa = PBXGroup;
+children = (
+CC0000000000000000000042 /* TerminalHeader.swift */,
+CC0000000000000000000043 /* TerminalPlatter.swift */,
+);
+path = Terminal;
+sourceTree = "<group>";
+};
+CC00G0000000000000000010 /* kexploit */ = {
+isa = PBXGroup;
+children = (
+CC000000000000000000050H /* darksword.h */,
+CC0000000000000000000050 /* darksword.m */,
+CC0000000000000000000051 /* offsets.m */,
+CC0000000000000000000052 /* utils.m */,
+CC0000000000000000000053 /* persistence.m */,
+CC000000000000000000054H /* root.h */,
+CC0000000000000000000054 /* root.m */,
+CC000000000000000000055H /* compat.h */,
+CC00G0000000000000000020 /* pe */,
+CC00G0000000000000000030 /* TaskRop */,
+);
+path = kexploit;
+sourceTree = "<group>";
+};
+CC00G0000000000000000020 /* pe */ = {
+isa = PBXGroup;
+children = (
+CC000000000000000000060H /* vfs.h */,
+CC0000000000000000000060 /* vfs.m */,
+CC000000000000000000061H /* sbx.h */,
+CC0000000000000000000061 /* sbx.m */,
+CC000000000000000000062H /* vnode.h */,
+CC0000000000000000000062 /* vnode.m */,
+CC000000000000000000063H /* apfs.h */,
+CC0000000000000000000063 /* apfs.m */,
+CC000000000000000000064H /* rc.h */,
+CC0000000000000000000064 /* rc.m */,
+CC000000000000000000065H /* xpaci.h */,
+);
+path = pe;
+sourceTree = "<group>";
+};
+CC00G0000000000000000030 /* TaskRop */ = {
+isa = PBXGroup;
+children = (
+CC000000000000000000070H /* RemoteCall.h */,
+CC0000000000000000000070 /* RemoteCall.m */,
+CC000000000000000000071H /* vm.h */,
+CC0000000000000000000071 /* vm.m */,
+CC000000000000000000072H /* exc.h */,
+CC0000000000000000000072 /* exc.m */,
+CC000000000000000000073H /* pac.h */,
+CC0000000000000000000073 /* pac.m */,
+CC000000000000000000074H /* thread.h */,
+CC0000000000000000000074 /* thread.m */,
+CC0000000000000000000075 /* findcachedataoff.m */,
+CC000000000000000000075H /* privateapi.h */,
+);
+path = TaskRop;
+sourceTree = "<group>";
+};
+CC00G0000000000000000040 /* headers */ = {
+isa = PBXGroup;
+children = (
+CC00000000000000000000B0 /* libgrabkernel2.h */,
+CC00000000000000000000B1 /* xpf.h */,
+CC00000000000000000000B2 /* fileport.h */,
+);
+path = headers;
+sourceTree = "<group>";
+};
+CC00G0000000000000000050 /* lib */ = {
+isa = PBXGroup;
+children = (
+CC00000000000000000000D0 /* libgrabkernel2.dylib */,
+CC00000000000000000000D1 /* libxpf.dylib */,
+);
+name = lib;
+path = lib;
+sourceTree = "<group>";
+};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CC1C8B382F71DF9C00206982 /* lara */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = CC1C8B442F71DF9C00206982 /* Build configuration list for PBXNativeTarget "controller" */;
-			buildPhases = (
-				CC1C8B352F71DF9C00206982 /* Sources */,
-				CC1C8B362F71DF9C00206982 /* Frameworks */,
-				9F4A1D313C4E567890123456 /* Embed Frameworks */,
-				9F4A1D503C4E567890123456 /* Force Sign Embedded Dylibs */,
-				CC1C8B372F71DF9C00206982 /* Resources */,
-				CC6845A02F86948300B08EB0 /* Embed App Clips */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				CC1C8B3B2F71DF9C00206982 /* lara */,
-			);
-			name = controller;
-			packageProductDependencies = (
-			);
-			productName = controller;
-			productReference = CC1C8B392F71DF9C00206982 /* lara.app */;
-			productType = "com.apple.product-type.application";
-		};
+CC00T0000000000000000001 /* controller */ = {
+isa = PBXNativeTarget;
+buildConfigurationList = CC00C0000000000000000001 /* Build configuration list for PBXNativeTarget "controller" */;
+buildPhases = (
+CC00P0000000000000000001 /* Sources */,
+CC00F0000000000000000001 /* Frameworks */,
+CC00R0000000000000000001 /* Resources */,
+CC00E0000000000000000001 /* Embed Frameworks */,
+);
+buildRules = (
+);
+dependencies = (
+);
+name = controller;
+productName = controller;
+productReference = CC00000000000000000000FF /* controller.app */;
+productType = "com.apple.product-type.application";
+};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		CC1C8B312F71DF9C00206982 /* Project object */ = {
-			isa = PBXProject;
-			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
-				LastUpgradeCheck = 2600;
-				TargetAttributes = {
-					CC1C8B382F71DF9C00206982 = {
-						CreatedOnToolsVersion = 26.0.1;
-					};
-				};
-			};
-			buildConfigurationList = CC1C8B342F71DF9C00206982 /* Build configuration list for PBXProject "controller" */;
-			developmentRegion = en;
-			hasScannedForEncodings = 0;
-			knownRegions = (
-				en,
-				Base,
-			);
-			mainGroup = CC1C8B302F71DF9C00206982;
-			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-			);
-			preferredProjectObjectVersion = 77;
-			productRefGroup = CC1C8B3A2F71DF9C00206982 /* Products */;
-			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				CC1C8B382F71DF9C00206982 /* lara */,
-			);
-		};
+CC00PROJ00000000000000001 /* Project object */ = {
+isa = PBXProject;
+attributes = {
+BuildIndependentTargetsInParallel = 1;
+LastSwiftUpdateCheck = 1500;
+LastUpgradeCheck = 1500;
+TargetAttributes = {
+CC00T0000000000000000001 = {
+CreatedOnToolsVersion = 15.0;
+};
+};
+};
+buildConfigurationList = CC00C0000000000000000000 /* Build configuration list for PBXProject "controller" */;
+compatibilityVersion = "Xcode 14.0";
+developmentRegion = en;
+hasScannedForEncodings = 0;
+knownRegions = (
+en,
+Base,
+);
+mainGroup = CC00G0000000000000000000;
+productRefGroup = CC00G0000000000000000002 /* Products */;
+projectDirPath = "";
+projectRoot = "";
+targets = (
+CC00T0000000000000000001 /* controller */,
+);
+};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		CC1C8B372F71DF9C00206982 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+CC00R0000000000000000001 /* Resources */ = {
+isa = PBXResourcesBuildPhase;
+buildActionMask = 2147483647;
+files = (
+);
+runOnlyForDeploymentPostprocessing = 0;
+};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		9F4A1D503C4E567890123456 /* Force Sign Embedded Dylibs */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)",
-				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/libgrabkernel2.dylib",
-				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/libxpf.dylib",
-			);
-			name = "Force Sign Embedded Dylibs";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e; if [ -z \"$EXPANDED_CODE_SIGN_IDENTITY\" ]; then exit 0; fi; fw=\"$CODESIGNING_FOLDER_PATH/Frameworks\"; for f in \"$fw/libgrabkernel2.dylib\" \"$fw/libxpf.dylib\"; do if [ -f \"$f\" ]; then /usr/bin/codesign --force --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" --timestamp=none \"$f\"; fi; done";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
-		CC1C8B352F71DF9C00206982 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+CC00P0000000000000000001 /* Sources */ = {
+isa = PBXSourcesBuildPhase;
+buildActionMask = 2147483647;
+files = (
+CC0001000000000000000001 /* controller.swift in Sources */,
+CC0001000000000000000002 /* ContentView.swift in Sources */,
+CC0001000000000000000003 /* HomeView.swift in Sources */,
+CC0001000000000000000004 /* IPAInstallerView.swift in Sources */,
+CC0001000000000000000005 /* LogsView.swift in Sources */,
+CC0001000000000000000006 /* RootManagerView.swift in Sources */,
+CC0001000000000000000007 /* SettingsView.swift in Sources */,
+CC0001000000000000000008 /* controllermgr.swift in Sources */,
+CC0001000000000000000009 /* Logger.swift in Sources */,
+CC000100000000000000000A /* fetchkcache.swift in Sources */,
+CC000100000000000000000B /* getbmhash.swift in Sources */,
+CC000100000000000000000C /* isdebugged.swift in Sources */,
+CC000100000000000000000D /* islcinstalled.swift in Sources */,
+CC000100000000000000000E /* isunsupported.swift in Sources */,
+CC000100000000000000000F /* keepalive.swift in Sources */,
+CC0001000000000000000010 /* resizetoapprox.swift in Sources */,
+CC0001000000000000000011 /* respring.swift in Sources */,
+CC0001000000000000000012 /* IPAInstaller.m in Sources */,
+CC0001000000000000000013 /* IconCacheClearer.m in Sources */,
+CC0001000000000000000014 /* VarCleanBridge.m in Sources */,
+CC0001000000000000000020 /* PartyUI.swift in Sources */,
+CC0001000000000000000021 /* AppInfo.swift in Sources */,
+CC0001000000000000000022 /* VariableBlur.swift in Sources */,
+CC0001000000000000000023 /* Alertinator.swift in Sources */,
+CC0001000000000000000024 /* Exitinator.swift in Sources */,
+CC0001000000000000000025 /* Hapticinator.swift in Sources */,
+CC0001000000000000000026 /* Shareinator.swift in Sources */,
+CC0001000000000000000027 /* AppInfoCell.swift in Sources */,
+CC0001000000000000000028 /* GetLicenseDict.swift in Sources */,
+CC0001000000000000000029 /* LicenseView.swift in Sources */,
+CC000100000000000000002A /* LinkCreditCell.swift in Sources */,
+CC000100000000000000002B /* WelcomeSheetRow.swift in Sources */,
+CC000100000000000000002C /* WelcomeSheetView.swift in Sources */,
+CC000100000000000000002D /* ButtonLabel.swift in Sources */,
+CC000100000000000000002E /* FancyButtonStyle.swift in Sources */,
+CC000100000000000000002F /* NavigationLabel.swift in Sources */,
+CC0001000000000000000030 /* PrimaryButtonStyle.swift in Sources */,
+CC0001000000000000000031 /* TinyButtonStyle.swift in Sources */,
+CC0001000000000000000032 /* TranslucentButtonStyle.swift in Sources */,
+CC0001000000000000000033 /* DesignStyle.swift in Sources */,
+CC0001000000000000000034 /* FadeAnimation.swift in Sources */,
+CC0001000000000000000035 /* OverlayBackground.swift in Sources */,
+CC0001000000000000000036 /* CompactAlert.swift in Sources */,
+CC0001000000000000000037 /* InfoBadge.swift in Sources */,
+CC0001000000000000000038 /* PlainAlert.swift in Sources */,
+CC0001000000000000000039 /* TinyInfoPlatter.swift in Sources */,
+CC000100000000000000003A /* PlainToggle.swift in Sources */,
+CC000100000000000000003B /* PlatterToggle.swift in Sources */,
+CC000100000000000000003C /* TextFieldBackground.swift in Sources */,
+CC000100000000000000003D /* TextFieldButton.swift in Sources */,
+CC000100000000000000003E /* HeaderDropdown.swift in Sources */,
+CC000100000000000000003F /* HeaderLabel.swift in Sources */,
+CC0001000000000000000040 /* SectionPlatter.swift in Sources */,
+CC0001000000000000000041 /* ThemedHeaderLabel.swift in Sources */,
+CC0001000000000000000042 /* TerminalHeader.swift in Sources */,
+CC0001000000000000000043 /* TerminalPlatter.swift in Sources */,
+CC0001000000000000000050 /* darksword.m in Sources */,
+CC0001000000000000000051 /* offsets.m in Sources */,
+CC0001000000000000000052 /* utils.m in Sources */,
+CC0001000000000000000053 /* persistence.m in Sources */,
+CC0001000000000000000054 /* root.m in Sources */,
+CC0001000000000000000060 /* vfs.m in Sources */,
+CC0001000000000000000061 /* sbx.m in Sources */,
+CC0001000000000000000062 /* vnode.m in Sources */,
+CC0001000000000000000063 /* apfs.m in Sources */,
+CC0001000000000000000064 /* rc.m in Sources */,
+CC0001000000000000000070 /* RemoteCall.m in Sources */,
+CC0001000000000000000071 /* vm.m in Sources */,
+CC0001000000000000000072 /* exc.m in Sources */,
+CC0001000000000000000073 /* pac.m in Sources */,
+CC0001000000000000000074 /* thread.m in Sources */,
+CC0001000000000000000075 /* findcachedataoff.m in Sources */,
+);
+runOnlyForDeploymentPostprocessing = 0;
+};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		CC1C8B422F71DF9C00206982 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = arm64e;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = DN4S6CXFWY;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
-		};
-		CC1C8B432F71DF9C00206982 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = arm64e;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = DN4S6CXFWY;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		CC1C8B452F71DF9C00206982 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64e;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = Release;
-				DEVELOPMENT_TEAM = "";
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/lara",
-					"$(SRCROOT)/controller/kexploit",
-				);
-				INFOPLIST_FILE = controller/Info.plist;
-				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UIFileSharingEnabled = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/controller/lib",
-				);
-				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.controller.app;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "controller/controller-Bridging-Header.h";
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		CC1C8B462F71DF9C00206982 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64e;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = Release;
-				DEVELOPMENT_TEAM = "";
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(SRCROOT)/lara",
-					"$(SRCROOT)/controller/kexploit",
-				);
-				INFOPLIST_FILE = controller/Info.plist;
-				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UIFileSharingEnabled = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/controller/lib",
-				);
-				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.controller.app;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "controller/controller-Bridging-Header.h";
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
+CC00BC00000000000000Debug /* Debug */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+ALWAYS_SEARCH_USER_PATHS = NO;
+CLANG_ANALYZER_NONNULL = YES;
+CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+CLANG_ENABLE_MODULES = YES;
+CLANG_ENABLE_OBJC_ARC = YES;
+CLANG_ENABLE_OBJC_WEAK = YES;
+COPY_PHASE_STRIP = NO;
+DEBUG_INFORMATION_FORMAT = dwarf;
+ENABLE_TESTABILITY = YES;
+GCC_C_LANGUAGE_STANDARD = gnu17;
+GCC_DYNAMIC_NO_PIC = NO;
+GCC_NO_COMMON_BLOCKS = YES;
+GCC_OPTIMIZATION_LEVEL = 0;
+GCC_PREPROCESSOR_DEFINITIONS = (
+"DEBUG=1",
+"$(inherited)",
+);
+IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+ONLY_ACTIVE_ARCH = YES;
+SDKROOT = iphoneos;
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+};
+name = Debug;
+};
+CC00BC00000000000000Release /* Release */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+ALWAYS_SEARCH_USER_PATHS = NO;
+CLANG_ANALYZER_NONNULL = YES;
+CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+CLANG_ENABLE_MODULES = YES;
+CLANG_ENABLE_OBJC_ARC = YES;
+CLANG_ENABLE_OBJC_WEAK = YES;
+COPY_PHASE_STRIP = NO;
+DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+ENABLE_NS_ASSERTIONS = NO;
+GCC_C_LANGUAGE_STANDARD = gnu17;
+GCC_NO_COMMON_BLOCKS = YES;
+IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+SDKROOT = iphoneos;
+SWIFT_COMPILATION_MODE = wholemodule;
+SWIFT_OPTIMIZATION_LEVEL = "-O";
+};
+name = Release;
+};
+CC00BT00000000000000Debug /* Debug */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+CODE_SIGN_ENTITLEMENTS = controller/controller.entitlements;
+CODE_SIGN_STYLE = Manual;
+CURRENT_PROJECT_VERSION = 1;
+GENERATE_INFOPLIST_FILE = NO;
+INFOPLIST_FILE = controller/Info.plist;
+IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+LD_RUNPATH_SEARCH_PATHS = (
+"$(inherited)",
+"@executable_path/Frameworks",
+);
+LIBRARY_SEARCH_PATHS = (
+"$(inherited)",
+"$(SRCROOT)/controller/lib",
+);
+MARKETING_VERSION = 1.0;
+OTHER_LDFLAGS = (
+"$(inherited)",
+"-lc++",
+"-framework",
+UIKit,
+"-framework",
+Foundation,
+"-framework",
+IOSurface,
+"-framework",
+CoreFoundation,
+"-lbsm",
+);
+PRODUCT_BUNDLE_IDENTIFIER = com.controller.app;
+PRODUCT_NAME = "$(TARGET_NAME)";
+SDKROOT = iphoneos;
+SWIFT_OBJC_BRIDGING_HEADER = "controller/controller-Bridging-Header.h";
+SWIFT_VERSION = 5.0;
+TARGETED_DEVICE_FAMILY = 1;
+USER_HEADER_SEARCH_PATHS = (
+"$(SRCROOT)/controller",
+"$(SRCROOT)/controller/kexploit",
+"$(SRCROOT)/controller/kexploit/pe",
+"$(SRCROOT)/controller/kexploit/TaskRop",
+"$(SRCROOT)/controller/headers",
+"$(SRCROOT)/controller/classes",
+);
+};
+name = Debug;
+};
+CC00BT00000000000000Release /* Release */ = {
+isa = XCBuildConfiguration;
+buildSettings = {
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+CODE_SIGN_ENTITLEMENTS = controller/controller.entitlements;
+CODE_SIGN_STYLE = Manual;
+CURRENT_PROJECT_VERSION = 1;
+GENERATE_INFOPLIST_FILE = NO;
+INFOPLIST_FILE = controller/Info.plist;
+IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+LD_RUNPATH_SEARCH_PATHS = (
+"$(inherited)",
+"@executable_path/Frameworks",
+);
+LIBRARY_SEARCH_PATHS = (
+"$(inherited)",
+"$(SRCROOT)/controller/lib",
+);
+MARKETING_VERSION = 1.0;
+OTHER_LDFLAGS = (
+"$(inherited)",
+"-lc++",
+"-framework",
+UIKit,
+"-framework",
+Foundation,
+"-framework",
+IOSurface,
+"-framework",
+CoreFoundation,
+"-lbsm",
+);
+PRODUCT_BUNDLE_IDENTIFIER = com.controller.app;
+PRODUCT_NAME = "$(TARGET_NAME)";
+SDKROOT = iphoneos;
+SWIFT_OBJC_BRIDGING_HEADER = "controller/controller-Bridging-Header.h";
+SWIFT_VERSION = 5.0;
+TARGETED_DEVICE_FAMILY = 1;
+USER_HEADER_SEARCH_PATHS = (
+"$(SRCROOT)/controller",
+"$(SRCROOT)/controller/kexploit",
+"$(SRCROOT)/controller/kexploit/pe",
+"$(SRCROOT)/controller/kexploit/TaskRop",
+"$(SRCROOT)/controller/headers",
+"$(SRCROOT)/controller/classes",
+);
+};
+name = Release;
+};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CC1C8B342F71DF9C00206982 /* Build configuration list for PBXProject "controller" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CC1C8B422F71DF9C00206982 /* Debug */,
-				CC1C8B432F71DF9C00206982 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		CC1C8B442F71DF9C00206982 /* Build configuration list for PBXNativeTarget "controller" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CC1C8B452F71DF9C00206982 /* Debug */,
-				CC1C8B462F71DF9C00206982 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
+CC00C0000000000000000000 /* Build configuration list for PBXProject "controller" */ = {
+isa = XCConfigurationList;
+buildConfigurations = (
+CC00BC00000000000000Debug /* Debug */,
+CC00BC00000000000000Release /* Release */,
+);
+defaultConfigurationIsVisible = 0;
+defaultConfigurationName = Release;
+};
+CC00C0000000000000000001 /* Build configuration list for PBXNativeTarget "controller" */ = {
+isa = XCConfigurationList;
+buildConfigurations = (
+CC00BT00000000000000Debug /* Debug */,
+CC00BT00000000000000Release /* Release */,
+);
+defaultConfigurationIsVisible = 0;
+defaultConfigurationName = Release;
+};
 /* End XCConfigurationList section */
-	};
-	rootObject = CC1C8B312F71DF9C00206982 /* Project object */;
+
+};
+rootObject = CC00PROJ00000000000000001 /* Project object */;
 }
