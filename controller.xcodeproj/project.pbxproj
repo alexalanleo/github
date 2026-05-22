@@ -25,8 +25,8 @@
 		15F024322FBB9510004BD090 /* replacement.materialrecipe in Resources */ = {isa = PBXBuildFile; fileRef = 15F024092FBB9510004BD090 /* replacement.materialrecipe */; };
 		15F024342FBB9510004BD090 /* modulesBackground.materialrecipe in Resources */ = {isa = PBXBuildFile; fileRef = 15F024002FBB9510004BD090 /* modulesBackground.materialrecipe */; };
 		15F024352FBB9510004BD090 /* podBackgroundViewDark.visualstyleset in Resources */ = {isa = PBXBuildFile; fileRef = 15F023FC2FBB9510004BD090 /* podBackgroundViewDark.visualstyleset */; };
-		9F4A1D2F3C4E567890123456 /* lara/lib/libxpf.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9F4A1D2E3C4E567890123456 /* lara/lib/libxpf.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		9F4A1D423C4E567890123456 /* lara/lib/libgrabkernel2.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9F4A1D413C4E567890123456 /* lara/lib/libgrabkernel2.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		9F4A1D2F3C4E567890123456 /* controller/lib/libxpf.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9F4A1D2E3C4E567890123456 /* controller/lib/libxpf.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		9F4A1D423C4E567890123456 /* controller/lib/libgrabkernel2.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 9F4A1D413C4E567890123456 /* controller/lib/libgrabkernel2.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -36,8 +36,8 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				9F4A1D2F3C4E567890123456 /* lara/lib/libxpf.dylib in Embed Frameworks */,
-				9F4A1D423C4E567890123456 /* lara/lib/libgrabkernel2.dylib in Embed Frameworks */,
+				9F4A1D2F3C4E567890123456 /* controller/lib/libxpf.dylib in Embed Frameworks */,
+				9F4A1D423C4E567890123456 /* controller/lib/libgrabkernel2.dylib in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -73,9 +73,9 @@
 		15F024052FBB9510004BD090 /* platterVibrantShadowDark.visualstyleset */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = platterVibrantShadowDark.visualstyleset; sourceTree = "<group>"; };
 		15F024062FBB9510004BD090 /* platterVibrantShadowLight.visualstyleset */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = platterVibrantShadowLight.visualstyleset; sourceTree = "<group>"; };
 		15F024092FBB9510004BD090 /* replacement.materialrecipe */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = replacement.materialrecipe; sourceTree = "<group>"; };
-		8F5C1F9B2D6A4E9D9F4B1A21 /* lara/kexploit/darksword.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = lara/kexploit/darksword.m; sourceTree = "<group>"; };
-		9F4A1D2E3C4E567890123456 /* lara/lib/libxpf.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = lara/lib/libxpf.dylib; sourceTree = "<group>"; };
-		9F4A1D413C4E567890123456 /* lara/lib/libgrabkernel2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = lara/lib/libgrabkernel2.dylib; sourceTree = "<group>"; };
+		8F5C1F9B2D6A4E9D9F4B1A21 /* controller/kexploit/darksword.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = controller/kexploit/darksword.m; sourceTree = "<group>"; };
+		9F4A1D2E3C4E567890123456 /* controller/lib/libxpf.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = controller/lib/libxpf.dylib; sourceTree = "<group>"; };
+		9F4A1D413C4E567890123456 /* controller/lib/libgrabkernel2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = controller/lib/libgrabkernel2.dylib; sourceTree = "<group>"; };
 		CC1C8B392F71DF9C00206982 /* lara.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lara.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC6842DF2F8311C300B08EB0 /* libSystem.B.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B.tbd; path = usr/lib/libSystem.B.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -231,9 +231,9 @@
 		CC1C8B822F72C8E000206982 /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
-				8F5C1F9B2D6A4E9D9F4B1A21 /* lara/kexploit/darksword.m */,
-				9F4A1D2E3C4E567890123456 /* lara/lib/libxpf.dylib */,
-				9F4A1D413C4E567890123456 /* lara/lib/libgrabkernel2.dylib */,
+				8F5C1F9B2D6A4E9D9F4B1A21 /* controller/kexploit/darksword.m */,
+				9F4A1D2E3C4E567890123456 /* controller/lib/libxpf.dylib */,
+				9F4A1D413C4E567890123456 /* controller/lib/libgrabkernel2.dylib */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -508,9 +508,9 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/lara",
-					"$(SRCROOT)/lara/kexploit",
+					"$(SRCROOT)/controller/kexploit",
 				);
-				INFOPLIST_FILE = lara/Info.plist;
+				INFOPLIST_FILE = controller/Info.plist;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -525,7 +525,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/lara/lib",
+					"$(PROJECT_DIR)/controller/lib",
 				);
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.controller.app;
@@ -538,7 +538,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "lara/controller-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "controller/controller-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -560,9 +560,9 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/lara",
-					"$(SRCROOT)/lara/kexploit",
+					"$(SRCROOT)/controller/kexploit",
 				);
-				INFOPLIST_FILE = lara/Info.plist;
+				INFOPLIST_FILE = controller/Info.plist;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -577,7 +577,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/lara/lib",
+					"$(PROJECT_DIR)/controller/lib",
 				);
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.controller.app;
@@ -590,7 +590,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "lara/controller-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "controller/controller-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

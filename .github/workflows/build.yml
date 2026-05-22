@@ -17,10 +17,10 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Install xcpretty
-        run: gem install xcpretty --no-document 2>/dev/null || true
+      - name: List schemes
+        run: xcodebuild -list -project controller.xcodeproj
 
-      - name: Build (unsigned)
+      - name: Build (unsigned, raw output)
         run: |
           xcodebuild build \
             -project controller.xcodeproj \
@@ -32,8 +32,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            PRODUCT_BUNDLE_IDENTIFIER=com.controller.app \
-            2>&1 | tee build_output.txt | xcpretty; exit ${PIPESTATUS[0]}
+            PRODUCT_BUNDLE_IDENTIFIER=com.controller.app
 
       - name: Package unsigned IPA
         run: |
@@ -42,15 +41,11 @@ jobs:
           mkdir -p Payload
           cp -r "$APP_PATH" Payload/
           codesign --remove-signature "Payload/$(basename "$APP_PATH")" 2>/dev/null || true
+          find "Payload/$(basename "$APP_PATH")" \( -name "*.dylib" -o -name "*.framework" \) | while read f; do
+            codesign --remove-signature "$f" 2>/dev/null || true
+          done
           zip -r controller.ipa Payload/
           echo "IPA size: $(du -sh controller.ipa | cut -f1)"
-
-      - name: Upload build log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-${{ github.sha }}
-          path: build_output.txt
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
