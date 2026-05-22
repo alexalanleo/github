@@ -17,10 +17,16 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
       - name: List schemes
         run: xcodebuild -list -project controller.xcodeproj
 
-      - name: Build (unsigned, raw output)
+      - name: Build (unsigned)
         run: |
           xcodebuild build \
             -project controller.xcodeproj \
@@ -31,8 +37,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            PRODUCT_BUNDLE_IDENTIFIER=com.controller.app
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
 
       - name: Package unsigned IPA
         run: |
