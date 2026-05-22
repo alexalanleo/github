@@ -21,6 +21,11 @@ jobs:
       - name: Set build time
         run: echo "BUILD_TIME=$(TZ='America/New_York' date '+%B %d, %Y at %I:%M %p %Z')" >> $GITHUB_ENV
 
+      - name: Fetch ChOma headers
+        run: |
+          git clone --depth=1 https://github.com/opa334/ChOma.git /tmp/ChOma
+          cp /tmp/ChOma/src/*.h controller/headers/
+
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
 
