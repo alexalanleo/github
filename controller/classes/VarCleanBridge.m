@@ -1,5 +1,4 @@
-#import "lara-Bridging-Header.h"
-
+#import <Foundation/Foundation.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -19,9 +18,7 @@
     }
 
     NSData *jsonData = [NSData dataWithContentsOfFile:jsonPath options:0 error:error];
-    if (!jsonData) {
-        return @{};
-    }
+    if (!jsonData) { return @{}; }
 
     id rules = [NSJSONSerialization JSONObjectWithData:jsonData
                                                options:NSJSONReadingMutableContainers
@@ -34,7 +31,6 @@
         }
         return @{};
     }
-
     return rules;
 }
 
@@ -43,9 +39,7 @@
               isSymlink:(BOOL *)isSymlink {
     if (isDirectory) *isDirectory = NO;
     if (isSymlink) *isSymlink = NO;
-    if (path.length == 0) {
-        return NO;
-    }
+    if (path.length == 0) { return NO; }
 
     struct stat st = {0};
     if (lstat(path.fileSystemRepresentation, &st) == 0) {
@@ -59,7 +53,6 @@
         if (isDirectory) *isDirectory = directory;
         return YES;
     }
-
     return access(path.fileSystemRepresentation, F_OK) == 0;
 }
 
