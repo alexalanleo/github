@@ -16,7 +16,7 @@ CC0001000000000000000006 /* RootManagerView.swift in Sources */ = {isa = PBXBuil
 CC0001000000000000000007 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000007 /* SettingsView.swift */; };
 CC0001000000000000000008 /* controllermgr.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000008 /* controllermgr.swift */; };
 CC0001000000000000000009 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000009 /* Logger.swift */; };
-		CC00010000000000000000FF /* CrashProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC00000000000000000000FF /* CrashProtection.swift */; };
+		CC000100000000000000001A /* CrashProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000001A /* CrashProtection.swift */; };
 CC000100000000000000000A /* fetchkcache.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000A /* fetchkcache.swift */; };
 CC000100000000000000000B /* getbmhash.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000B /* getbmhash.swift */; };
 CC000100000000000000000C /* isdebugged.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000C /* isdebugged.swift */; };
@@ -97,7 +97,7 @@ CC0000000000000000000006 /* RootManagerView.swift */ = {isa = PBXFileReference; 
 CC0000000000000000000007 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 CC0000000000000000000008 /* controllermgr.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = controllermgr.swift; sourceTree = "<group>"; };
 CC0000000000000000000009 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
-		CC00000000000000000000FF /* CrashProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashProtection.swift; sourceTree = "<group>"; };
+		CC000000000000000000001A /* CrashProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashProtection.swift; sourceTree = "<group>"; };
 CC000000000000000000000A /* fetchkcache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = fetchkcache.swift; sourceTree = "<group>"; };
 CC000000000000000000000B /* getbmhash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = getbmhash.swift; sourceTree = "<group>"; };
 CC000000000000000000000C /* isdebugged.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = isdebugged.swift; sourceTree = "<group>"; };
@@ -266,7 +266,7 @@ isa = PBXGroup;
 children = (
 CC0000000000000000000008 /* controllermgr.swift */,
 CC0000000000000000000009 /* Logger.swift */,
-				CC00000000000000000000FF /* CrashProtection.swift */,
+				CC000000000000000000001A /* CrashProtection.swift */,
 CC0000000000000000000012 /* IPAInstaller.m */,
 CC0000000000000000000013 /* IconCacheClearer.m */,
 CC0000000000000000000014 /* VarCleanBridge.m */,
@@ -580,7 +580,7 @@ CC0001000000000000000006 /* RootManagerView.swift in Sources */,
 CC0001000000000000000007 /* SettingsView.swift in Sources */,
 CC0001000000000000000008 /* controllermgr.swift in Sources */,
 CC0001000000000000000009 /* Logger.swift in Sources */,
-				CC00010000000000000000FF /* CrashProtection.swift in Sources */,
+				CC000100000000000000001A /* CrashProtection.swift in Sources */,
 CC000100000000000000000A /* fetchkcache.swift in Sources */,
 CC000100000000000000000B /* getbmhash.swift in Sources */,
 CC000100000000000000000C /* isdebugged.swift in Sources */,
