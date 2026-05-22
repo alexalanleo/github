@@ -1,0 +1,25 @@
+{
+  "name": "controller",
+  "identifier": "com.controller.app",
+  "homepage": "https://github.com/clogan9019-dotcom/controller",
+  "apps": [
+    {
+      "name": "controller",
+      "bundleIdentifier": "com.controller.app",
+      "developerName": "controller team",
+      "subtitle": "iOS Toolbox using DarkSword kexploit",
+      "localizedDescription": "IPA Installer and Root Manager powered by the DarkSword kernel exploit.",
+      "iconURL": "",
+      "tintColor": "8B5CF6",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "date": "2026-05-22",
+          "localizedDescription": "Initial release",
+          "downloadURL": "",
+          "size": 0
+        }
+      ]
+    }
+  ]
+}
