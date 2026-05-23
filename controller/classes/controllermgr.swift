@@ -15,6 +15,7 @@
       @Published var dsready: Bool = false
       @Published var dsattempted: Bool = false
       @Published var dsfailed: Bool = false
+      @Published var dsrecoverederror: String? = nil
       @Published var dsprogress: Double = 0.0
       @Published var hasOffsets: Bool = false
       @Published var kernbase: UInt64 = 0
@@ -45,21 +46,31 @@
           }
 
           DispatchQueue.global(qos: .userInitiated).async {
-              let ret = ds_run()
+              let ret = exploit_run_guarded()
               DispatchQueue.main.async {
                   self.dsrunning = false
                   if ret == 0 {
                       self.dsready = true
                       self.dsfailed = false
+                      self.dsrecoverederror = nil
                       self.kernbase = ds_get_kernel_base()
                       self.kernslide = ds_get_kernel_slide()
                       self.dsprogress = 1.0
                       self.hasOffsets = true
-                      globallogger.log("[OK] DarkSword ready — kernel base: \(String(format: "0x%llX", self.kernbase))")
+                      globallogger.log("[OK] DarkSword ready")
                       self.initVFS()
+                  } else if ret <= -1000 {
+                      // Fatal signal caught and recovered — no crash
+                      let sigDesc = String(cString: exploit_error_name(ret))
+                      self.dsfailed = true
+                      self.dsrecoverederror = sigDesc
+                      self.kaccesserror = sigDesc
+                      globallogger.log("[CRASH RECOVERED] \(sigDesc)")
+                      globallogger.log("[INFO] Exploit crashed but the app recovered. Check Logs tab then tap Retry.")
                   } else {
                       self.dsfailed = true
-                      self.kaccesserror = "ds_run returned \(ret)"
+                      self.dsrecoverederror = nil
+                      self.kaccesserror = "Exploit returned error code \(ret)"
                       globallogger.log("[ERROR] DarkSword failed with code \(ret)")
                   }
               }
