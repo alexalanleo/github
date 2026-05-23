@@ -27,6 +27,11 @@
                           QuickActionsCard()
                               .padding(.horizontal)
 
+                          if mgr.dsfailed && mgr.dsrecoverederror != nil {
+                              ExploitErrorBanner()
+                                  .padding(.horizontal)
+                          }
+
                           if g_isunsupported {
                               UnsupportedBanner()
                                   .padding(.horizontal)
@@ -251,6 +256,42 @@
           }
           .disabled(!enabled)
           .frame(maxWidth: .infinity)
+      }
+  }
+
+  // MARK: - Exploit Error Banner
+  struct ExploitErrorBanner: View {
+      @EnvironmentObject private var mgr: controllermgr
+
+      var body: some View {
+          VStack(alignment: .leading, spacing: 10) {
+              HStack(spacing: 10) {
+                  Image(systemName: "exclamationmark.triangle.fill")
+                      .foregroundColor(.red)
+                      .font(.title3)
+                  Text("Exploit Crashed (Recovered)")
+                      .font(.subheadline).fontWeight(.semibold)
+                      .foregroundColor(.white)
+                  Spacer()
+              }
+              if let err = mgr.dsrecoverederror {
+                  Text(err)
+                      .font(.system(.caption, design: .monospaced))
+                      .foregroundColor(.red.opacity(0.9))
+                      .fixedSize(horizontal: false, vertical: true)
+              }
+              Text("The app caught the crash and kept running. See the Logs tab for full detail, then tap Retry above.")
+                  .font(.caption)
+                  .foregroundColor(.gray)
+                  .fixedSize(horizontal: false, vertical: true)
+          }
+          .padding(16)
+          .background(
+              RoundedRectangle(cornerRadius: 14)
+                  .fill(Color.red.opacity(0.08))
+                  .overlay(RoundedRectangle(cornerRadius: 14)
+                      .strokeBorder(Color.red.opacity(0.4), lineWidth: 1))
+          )
       }
   }
 
