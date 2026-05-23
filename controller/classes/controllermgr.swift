@@ -61,7 +61,7 @@
                       self.initVFS()
                   } else if ret <= -1000 {
                       // Fatal signal caught and recovered — no crash
-                      let sigDesc = String(cString: exploit_error_name(ret))
+                      let sigDesc = exploitSignalName(ret)
                       self.dsfailed = true
                       self.dsrecoverederror = sigDesc
                       self.kaccesserror = sigDesc
@@ -221,4 +221,18 @@
       let ret = posix_spawn(&pid, args[0], nil, nil, &argv, nil)
       if ret == 0 { waitpid(pid, nil, 0) }
   }
-  
+
+
+// MARK: - Signal Name Helper
+private func exploitSignalName(_ ret: Int32) -> String {
+    let sig = -(ret + 1000)
+    switch sig {
+    case SIGABRT:  return "SIGABRT (abort - memory corruption or assert)"
+    case SIGSEGV:  return "SIGSEGV (bad pointer dereference)"
+    case SIGBUS:   return "SIGBUS (misaligned kernel address)"
+    case SIGILL:   return "SIGILL (illegal instruction)"
+    case SIGFPE:   return "SIGFPE (floating-point exception)"
+    case SIGTRAP:  return "SIGTRAP (breakpoint trap)"
+    default:       return "signal \(sig)"
+    }
+}
