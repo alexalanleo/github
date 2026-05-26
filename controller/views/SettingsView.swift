@@ -46,7 +46,7 @@
                   } header: {
                       Text("Advanced").foregroundColor(.gray)
                   } footer: {
-                      Text("Manually override kernel struct offsets. Only edit if you know what you are doing — wrong values will crash the exploit.")
+                      Text("Manually override kernel struct offsets. Values show as 0x0 until the exploit runs and resolves them (requires kernelcache). Only edit if you know what you are doing — wrong values will crash the exploit.")
                           .foregroundColor(.gray)
                   }
 
