@@ -79,7 +79,7 @@ enum CrashProtection {
 
     // MARK: - Crash file writer
 
-    private static func writecrashdump(_ info: String) {
+    static func writecrashdump(_ info: String) {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let logsDir = docs.appendingPathComponent("Logs", isDirectory: true)
         try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
@@ -106,6 +106,24 @@ enum CrashProtection {
         ══════════════════════════════════════════
         """
         try? full.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    // MARK: - Surface recovered exploit crashes
+    static func writeRecoveredCrash(_ description: String) {
+        let device  = UIDevice.current
+        let bundle  = Bundle.main
+        let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let build   = bundle.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let timestamp = fmt.string(from: Date())
+        let report = """
+        [RECOVERED SIGNAL] \(description)
+        Device  : \(device.model) [\(device.systemName) \(device.systemVersion)]
+        App     : v\(version) (build \(build))
+        Note    : ExploitGuard caught this signal via siglongjmp — app kept running.
+        """
+        writecrashdump(report)
     }
 
     // MARK: - Surface previous crash on next launch
