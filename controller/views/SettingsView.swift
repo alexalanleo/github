@@ -116,11 +116,18 @@
       }
   }
 
+
 // MARK: - Offsets Editor
 
+private struct OffsetEntry: Identifiable {
+    var id: String { name }
+    let name: String
+    var value: String
+}
+
 struct OffsetsEditorView: View {
-    @State private var offsets32: [(name: String, value: String)] = []
-    @State private var offsets64: [(name: String, value: String)] = []
+    @State private var offsets32: [OffsetEntry] = []
+    @State private var offsets64: [OffsetEntry] = []
     @State private var editingName: String? = nil
     @State private var editingValue: String = ""
     @State private var showResetConfirm = false
@@ -142,40 +149,30 @@ struct OffsetsEditorView: View {
                 }
 
                 Section {
-                    ForEach(offsets32, id: \.name) { entry in
+                    ForEach(offsets32) { entry in
                         OffsetRow(
                             name: entry.name,
                             value: entry.value,
                             isEditing: editingName == entry.name,
-                            editBuffer: editingName == entry.name ? $editingValue : .constant(entry.value)
-                        ) {
-                            if editingName == entry.name {
-                                commitEdit(name: entry.name, is64: false)
-                            } else {
-                                editingName = entry.name
-                                editingValue = entry.value
-                            }
-                        }
+                            editBuffer: $editingValue,
+                            onEdit: { editingName = entry.name; editingValue = entry.value },
+                            onSave: { commitEdit(name: entry.name, is64: false) }
+                        )
                     }
                 } header: {
                     Text("32-bit Offsets").foregroundColor(.gray)
                 }
 
                 Section {
-                    ForEach(offsets64, id: \.name) { entry in
+                    ForEach(offsets64) { entry in
                         OffsetRow(
                             name: entry.name,
                             value: entry.value,
                             isEditing: editingName == entry.name,
-                            editBuffer: editingName == entry.name ? $editingValue : .constant(entry.value)
-                        ) {
-                            if editingName == entry.name {
-                                commitEdit(name: entry.name, is64: true)
-                            } else {
-                                editingName = entry.name
-                                editingValue = entry.value
-                            }
-                        }
+                            editBuffer: $editingValue,
+                            onEdit: { editingName = entry.name; editingValue = entry.value },
+                            onSave: { commitEdit(name: entry.name, is64: true) }
+                        )
                     }
                 } header: {
                     Text("64-bit Values").foregroundColor(.gray)
@@ -206,30 +203,38 @@ struct OffsetsEditorView: View {
     }
 
     private func loadOffsets() {
-        guard let dict = alloffs() as? [String: NSNumber] else { return }
-        let sorted = dict.keys.sorted()
-        let names64 = offs64Names
-        offsets32 = sorted.filter { !names64.contains($0) }.map { (name: $0, value: String(format: "0x%x", dict[$0]!.uint32Value)) }
-        offsets64 = sorted.filter { names64.contains($0) }.map { (name: $0, value: String(format: "0x%llx", dict[$0]!.uint64Value)) }
+        guard let raw = alloffs() as? [AnyHashable: Any] else { return }
+        var list32: [OffsetEntry] = []
+        var list64: [OffsetEntry] = []
+        for key in raw.keys.compactMap({ $0 as? String }).sorted() {
+            guard let num = raw[key] as? NSNumber else { continue }
+            if offs64Names.contains(key) {
+                list64.append(OffsetEntry(name: key, value: String(format: "0x%llx", num.uint64Value)))
+            } else {
+                list32.append(OffsetEntry(name: key, value: String(format: "0x%x", num.uint32Value)))
+            }
+        }
+        offsets32 = list32
+        offsets64 = list64
     }
 
     private func commitEdit(name: String, is64: Bool) {
-        let hex = editingValue.hasPrefix("0x") || editingValue.hasPrefix("0X")
+        let raw = editingValue.hasPrefix("0x") || editingValue.hasPrefix("0X")
             ? String(editingValue.dropFirst(2))
             : editingValue
         if is64 {
-            if let val = UInt64(hex, radix: 16) {
+            if let val = UInt64(raw, radix: 16) {
                 setOffset64ByName(name, val)
                 if let idx = offsets64.firstIndex(where: { $0.name == name }) {
-                    offsets64[idx] = (name: name, value: String(format: "0x%llx", val))
+                    offsets64[idx].value = String(format: "0x%llx", val)
                 }
                 saveStatus = "Saved \(name)"
             }
         } else {
-            if let val = UInt32(hex, radix: 16) {
+            if let val = UInt32(raw, radix: 16) {
                 setOffsetByName(name, val)
                 if let idx = offsets32.firstIndex(where: { $0.name == name }) {
-                    offsets32[idx] = (name: name, value: String(format: "0x%x", val))
+                    offsets32[idx].value = String(format: "0x%x", val)
                 }
                 saveStatus = "Saved \(name)"
             }
@@ -255,7 +260,8 @@ struct OffsetRow: View {
     let value: String
     let isEditing: Bool
     @Binding var editBuffer: String
-    let onTap: () -> Void
+    let onEdit: () -> Void
+    let onSave: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -278,7 +284,7 @@ struct OffsetRow: View {
                 }
             }
             Spacer()
-            Button(action: onTap) {
+            Button(action: isEditing ? onSave : onEdit) {
                 Image(systemName: isEditing ? "checkmark.circle.fill" : "pencil.circle")
                     .foregroundColor(isEditing ? .green : .gray)
                     .font(.system(size: 20))
