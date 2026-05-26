@@ -71,8 +71,14 @@
                   } else {
                       self.dsfailed = true
                       self.dsrecoverederror = nil
-                      self.kaccesserror = "Exploit returned error code \(ret)"
-                      globallogger.log("[ERROR] DarkSword failed with code \(ret)")
+                      if ret == -2000 {
+                          let reason = String(cString: exploit_last_exception_reason())
+                          self.kaccesserror = reason.isEmpty ? "Exploit threw an exception" : reason
+                          globallogger.log("[ERROR] DarkSword exception: \(self.kaccesserror ?? "")")
+                      } else {
+                          self.kaccesserror = "Exploit returned error code \(ret)"
+                          globallogger.log("[ERROR] DarkSword failed with code \(ret)")
+                      }
                   }
               }
           }
