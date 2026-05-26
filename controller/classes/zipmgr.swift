@@ -79,6 +79,11 @@ public enum ZipError: Error {
     case unsupported(String)
 }
 
+private let Z_OK: Int32 = 0
+private let Z_STREAM_END: Int32 = 1
+private let Z_BUF_ERROR: Int32 = -5
+private let Z_FINISH: Int32 = 4
+
 public final class ZipArchive {
     private let data: Data
     public private(set) var entries: [ZipEntry] = []
@@ -220,7 +225,7 @@ public final class ZipArchive {
                 stream.next_out = dest.assumingMemoryBound(to: Bytef.self)
                 stream.avail_out = uInt(decompressedSize)
 
-                var ret = inflateInit2_(&stream, -15, ZLIB_VERSION, Int32(MemoryLayout<z_stream>.size))
+                var ret = inflateInit2_(&stream, -15, zlibVersion(), Int32(MemoryLayout<z_stream>.size))
                 guard ret == Z_OK else { return ret }
                 ret = inflate(&stream, Z_FINISH)
                 actualSize = decompressedSize - Int(stream.avail_out)
