@@ -18,6 +18,7 @@ struct controller: App {
     @StateObject private var mgr = controllermgr.shared
     @Environment(\.scenePhase) var scenephase
     @AppStorage("keepAlive") private var keepalive: Bool = false
+    @State private var didInitOffsets: Bool = false
 
     init() {
         CrashProtection.install()
@@ -40,6 +41,17 @@ struct controller: App {
             ContentView()
                 .environmentObject(mgr)
                 .preferredColorScheme(.dark)
+                .onAppear {
+                    guard !didInitOffsets else { return }
+                    didInitOffsets = true
+
+                    if !g_isunsupported {
+                        init_offsets()
+                        offsets_init()
+                        mgr.hasOffsets = true
+                        globallogger.log("[OK] offsets initialised")
+                    }
+                }
         }
     }
 }
