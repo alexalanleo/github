@@ -65,8 +65,9 @@
                       self.dsfailed = true
                       self.dsrecoverederror = sigDesc
                       self.kaccesserror = sigDesc
+                      CrashProtection.writeRecoveredCrash(sigDesc)
                       globallogger.log("[CRASH RECOVERED] \(sigDesc)")
-                      globallogger.log("[INFO] Exploit crashed but the app recovered. Check Logs tab then tap Retry.")
+                      globallogger.log("[INFO] Exploit crashed but the app recovered. Crash written to Logs/. Check Logs tab then tap Retry.")
                   } else {
                       self.dsfailed = true
                       self.dsrecoverederror = nil
