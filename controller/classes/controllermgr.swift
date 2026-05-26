@@ -59,6 +59,13 @@
                       self.hasOffsets = true
                       globallogger.log("[OK] DarkSword ready")
                       self.initVFS()
+                  } else if ret == -2000 {
+                      let reason = String(cString: exploit_last_exception_reason())
+                      let message = reason.isEmpty ? "Exploit threw an exception" : reason
+                      self.dsfailed = true
+                      self.dsrecoverederror = message
+                      self.kaccesserror = message
+                      globallogger.log("[ERROR] DarkSword exception: \(message)")
                   } else if ret <= -1000 {
                       // Fatal signal caught and recovered — no crash
                       let sigDesc = exploitSignalName(ret)
@@ -71,14 +78,8 @@
                   } else {
                       self.dsfailed = true
                       self.dsrecoverederror = nil
-                      if ret == -2000 {
-                          let reason = String(cString: exploit_last_exception_reason())
-                          self.kaccesserror = reason.isEmpty ? "Exploit threw an exception" : reason
-                          globallogger.log("[ERROR] DarkSword exception: \(self.kaccesserror ?? "")")
-                      } else {
-                          self.kaccesserror = "Exploit returned error code \(ret)"
-                          globallogger.log("[ERROR] DarkSword failed with code \(ret)")
-                      }
+                      self.kaccesserror = "Exploit returned error code \(ret)"
+                      globallogger.log("[ERROR] DarkSword failed with code \(ret)")
                   }
               }
           }
