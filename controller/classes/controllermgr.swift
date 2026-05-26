@@ -93,6 +93,12 @@
                   self.vfsready = ret == 0
                   if ret == 0 {
                       globallogger.log("[OK] VFS initialised")
+                      DispatchQueue.global(qos: .userInitiated).async {
+                          let r = sbx_escape(ds_get_our_proc())
+                          DispatchQueue.main.async {
+                              globallogger.log(r == 0 ? "[OK] Sandbox escape ready" : "[WARN] Sandbox escape failed (\(r))")
+                          }
+                      }
                   } else {
                       globallogger.log("[WARN] VFS init failed: \(ret)")
                   }
@@ -160,6 +166,11 @@
       func installIPA(url: URL, progress: @escaping (Double, String) -> Void, completion: @escaping (Bool, String?) -> Void) {
           guard vfsready else { completion(false, "VFS not ready"); return }
           DispatchQueue.global(qos: .userInitiated).async {
+              let sbx = sbx_escape(ds_get_our_proc())
+              if sbx != 0 {
+                  DispatchQueue.main.async { completion(false, "Sandbox escape failed (\(sbx))") }
+                  return
+              }
               progress(0.05, "Opening IPA...")
               // Extract IPA (zip)
               let tmpDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ctrl_install_\(UUID().uuidString)")
@@ -222,12 +233,24 @@
 
   // MARK: - Helpers
   func extractIPA(url: URL, to destination: URL) throws {
-      // Use unzip via posix_spawn (IPA is a zip file)
-      let args = ["/usr/bin/unzip", "-q", url.path, "-d", destination.path]
-      var pid: pid_t = 0
-      var argv = args.map { UnsafeMutablePointer(mutating: ($0 as NSString).utf8String)! } + [nil]
-      let ret = posix_spawn(&pid, args[0], nil, nil, &argv, nil)
-      if ret == 0 { waitpid(pid, nil, 0) }
+      // IPA is a zip file. Don't rely on /usr/bin/unzip being present on-device.
+      let archive = try ZipArchive(data: try Data(contentsOf: url))
+      try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+
+      for entry in archive.entries {
+          let normalizedPath = entry.path.replacingOccurrences(of: "\\", with: "/")
+          guard !normalizedPath.contains("..") else { continue }
+
+          let outputURL = destination.appendingPathComponent(normalizedPath)
+          if entry.isDirectory {
+              try? FileManager.default.createDirectory(at: outputURL, withIntermediateDirectories: true)
+              continue
+          }
+
+          try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+          let extracted = try archive.extract(entry)
+          try extracted.write(to: outputURL)
+      }
   }
 
 
