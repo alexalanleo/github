@@ -171,28 +171,36 @@
                   DispatchQueue.main.async { completion(false, "Sandbox escape failed (\(sbx))") }
                   return
               }
+              DispatchQueue.main.async { globallogger.log("[IPA] sandbox escape ok") }
               progress(0.05, "Opening IPA...")
+              DispatchQueue.main.async { globallogger.log("[IPA] Opening: \(url.lastPathComponent)") }
               // Extract IPA (zip)
               let tmpDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ctrl_install_\(UUID().uuidString)")
               do {
                   try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
                   progress(0.1, "Extracting...")
+                  DispatchQueue.main.async { globallogger.log("[IPA] Extracting to: \(tmpDir.path)") }
                   try extractIPA(url: url, to: tmpDir)
                   progress(0.4, "Locating app bundle...")
+                  DispatchQueue.main.async { globallogger.log("[IPA] Looking for Payload/*.app") }
                   let payloadDir = tmpDir.appendingPathComponent("Payload")
                   let apps = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
                       .filter { $0.pathExtension == "app" }
                   guard let appBundle = apps.first else {
+                      DispatchQueue.main.async { globallogger.log("[IPA] No .app found under Payload") }
                       completion(false, "No .app bundle found in IPA")
                       return
                   }
                   progress(0.5, "Installing \(appBundle.lastPathComponent)...")
+                  DispatchQueue.main.async { globallogger.log("[IPA] Installing bundle: \(appBundle.path)") }
                   let result = install_app_bundle(appBundle.path)
                   progress(1.0, result == 0 ? "Done!" : "Install failed")
                   DispatchQueue.main.async {
+                      globallogger.log(result == 0 ? "[IPA] Install OK" : "[IPA] Install failed: \(result)")
                       completion(result == 0, result == 0 ? nil : "install_app_bundle returned \(result)")
                   }
               } catch {
+                  DispatchQueue.main.async { globallogger.log("[IPA] Error: \(error.localizedDescription)") }
                   DispatchQueue.main.async { completion(false, error.localizedDescription) }
               }
               try? FileManager.default.removeItem(at: tmpDir)
