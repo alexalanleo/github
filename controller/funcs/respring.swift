@@ -43,14 +43,20 @@ let respringdoc = """
 """
 
 func respring() {
+    globallogger.log("[RESPRING] Respring triggered")
     DispatchQueue.main.async {
         guard let window = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .flatMap({ $0.windows })
-            .first(where: { $0.isKeyWindow }) else { return }
+            .first(where: { $0.isKeyWindow }) else {
+            globallogger.log("[RESPRING] Could not find key window — aborting")
+            return
+        }
+        globallogger.log("[RESPRING] Injecting respring WebView into key window")
         let wv = WKWebView(frame: window.bounds)
         wv.loadHTMLString(respringdoc, baseURL: nil)
         window.addSubview(wv)
+        globallogger.log("[RESPRING] WebView added — springboard should restart momentarily")
     }
 }
 
