@@ -27,6 +27,7 @@ CC000100000000000000000E /* isunsupported.swift in Sources */ = {isa = PBXBuildF
 CC000100000000000000000F /* keepalive.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000F /* keepalive.swift */; };
 CC0001000000000000000010 /* resizetoapprox.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000010 /* resizetoapprox.swift */; };
 CC0001000000000000000011 /* respring.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000011 /* respring.swift */; };
+CC0001000000000000000015 /* helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000015 /* helpers.swift */; };
 CC0001000000000000000012 /* IPAInstaller.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000012 /* IPAInstaller.m */; };
 CC0001000000000000000013 /* IconCacheClearer.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000013 /* IconCacheClearer.m */; };
 CC0001000000000000000014 /* VarCleanBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000014 /* VarCleanBridge.m */; };
@@ -111,6 +112,7 @@ CC000000000000000000000E /* isunsupported.swift */ = {isa = PBXFileReference; la
 CC000000000000000000000F /* keepalive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = keepalive.swift; sourceTree = "<group>"; };
 CC0000000000000000000010 /* resizetoapprox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = resizetoapprox.swift; sourceTree = "<group>"; };
 CC0000000000000000000011 /* respring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = respring.swift; sourceTree = "<group>"; };
+CC0000000000000000000015 /* helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helpers.swift; sourceTree = "<group>"; };
 CC0000000000000000000012 /* IPAInstaller.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = IPAInstaller.m; sourceTree = "<group>"; };
 CC0000000000000000000013 /* IconCacheClearer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = IconCacheClearer.m; sourceTree = "<group>"; };
 CC0000000000000000000014 /* VarCleanBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VarCleanBridge.m; sourceTree = "<group>"; };
@@ -291,6 +293,7 @@ CC000000000000000000000E /* isunsupported.swift */,
 CC000000000000000000000F /* keepalive.swift */,
 CC0000000000000000000010 /* resizetoapprox.swift */,
 CC0000000000000000000011 /* respring.swift */,
+CC0000000000000000000015 /* helpers.swift */,
 );
 path = funcs;
 sourceTree = "<group>";
@@ -598,6 +601,7 @@ CC000100000000000000000E /* isunsupported.swift in Sources */,
 CC000100000000000000000F /* keepalive.swift in Sources */,
 CC0001000000000000000010 /* resizetoapprox.swift in Sources */,
 CC0001000000000000000011 /* respring.swift in Sources */,
+CC0001000000000000000015 /* helpers.swift in Sources */,
 CC0001000000000000000012 /* IPAInstaller.m in Sources */,
 CC0001000000000000000013 /* IconCacheClearer.m in Sources */,
 CC0001000000000000000014 /* VarCleanBridge.m in Sources */,
