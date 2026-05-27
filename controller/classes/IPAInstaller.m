@@ -12,7 +12,7 @@
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
 
-// Recursively set permissions on the installed .app bundle
+// Recursively set correct permissions on the installed .app bundle
 static void fix_permissions_recursive(NSString *path) {
     NSFileManager *fm = [NSFileManager defaultManager];
     NSDictionary *dirAttrs  = @{NSFilePosixPermissions: @(0755)};
@@ -32,11 +32,12 @@ static void fix_permissions_recursive(NSString *path) {
 int install_app_bundle(const char *appBundlePath) {
     if (!ds_is_ready()) return -1;
 
-    // Need root to write into /var/containers/Bundle/Application/
+    // Grant root so we can write to /var/containers/Bundle/Application/
+    // root.m now patches kauth_cred fields in-place (not proc_ro), bypassing PPL.
     int rootErr = grant_root_to_pid(getpid());
     if (rootErr != 0) {
-        NSLog(@"[controller] grant_root_to_pid failed: %d", rootErr);
-        return -10;
+        NSLog(@"[controller] grant_root_to_pid(%d) failed: %d", getpid(), rootErr);
+        return rootErr;   // return the actual error code for diagnosability
     }
 
     NSString *srcPath = [NSString stringWithUTF8String:appBundlePath];
@@ -68,7 +69,8 @@ int install_app_bundle(const char *appBundlePath) {
     // Read Info.plist for registration metadata
     NSString *infoPlistPath = [destApp stringByAppendingPathComponent:@"Info.plist"];
     NSDictionary *info      = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
-    NSString *bundleID      = info[@"CFBundleIdentifier"]      ?: @"unknown";
+    NSString *bundleID      = info[@"CFBundleIdentifier"]
+                           ?: @"unknown";
     NSString *bundleName    = info[@"CFBundleDisplayName"]
                            ?: info[@"CFBundleName"]
                            ?: bundleID;
