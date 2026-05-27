@@ -183,7 +183,7 @@
           globallogger.log("[PROCLIST] Fetching process list...")
           var count: Int32 = 0
           guard let list = proclist(nil, &count) else {
-              globallogger.log("[ERROR] proclist() returned nil")
+              globallogger.log("[ERROR] proclist() returned nil (errno=\(errno), vfsready=\(vfsready), dsready=\(dsready))")
               return []
           }
           defer { free_proclist(list) }
@@ -212,42 +212,50 @@
               let accessed = url.startAccessingSecurityScopedResource()
               defer { if accessed { url.stopAccessingSecurityScopedResource() } }
               globallogger.log("[IPA] Security-scoped resource access: \(accessed ? "granted" : "denied")")
+
               let sbx = sbx_escape(ds_get_our_proc())
               if sbx != 0 {
                   globallogger.log("[IPA] Sandbox escape failed: \(sbx)")
                   DispatchQueue.main.async { completion(false, "Sandbox escape failed (\(sbx))") }
                   return
               }
-              DispatchQueue.main.async { globallogger.log("[IPA] Sandbox escape ok") }
+              globallogger.log("[IPA] Sandbox escape ok")
+
               progress(0.05, "Opening IPA...")
-              DispatchQueue.main.async { globallogger.log("[IPA] Opening: \(url.lastPathComponent)") }
+              globallogger.log("[IPA] Opening: \(url.lastPathComponent)")
+
               let tmpDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ctrl_install_\(UUID().uuidString)")
               do {
                   try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
                   globallogger.log("[IPA] Created temp dir: \(tmpDir.path)")
+
                   progress(0.1, "Extracting...")
-                  DispatchQueue.main.async { globallogger.log("[IPA] Extracting to: \(tmpDir.path)") }
+                  globallogger.log("[IPA] Extracting to: \(tmpDir.path)")
                   try extractIPA(url: url, to: tmpDir)
+
                   progress(0.4, "Locating app bundle...")
-                  DispatchQueue.main.async { globallogger.log("[IPA] Extraction complete, looking for Payload/*.app") }
+                  globallogger.log("[IPA] Extraction complete, looking for Payload/*.app")
+
                   let payloadDir = tmpDir.appendingPathComponent("Payload")
                   let apps = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
                       .filter { $0.pathExtension == "app" }
                   globallogger.log("[IPA] Found \(apps.count) .app bundle(s) in Payload")
+
                   guard let appBundle = apps.first else {
-                      DispatchQueue.main.async { globallogger.log("[IPA] No .app found under Payload") }
-                      completion(false, "No .app bundle found in IPA")
+                      globallogger.log("[IPA] No .app found under Payload")
+                      DispatchQueue.main.async { completion(false, "No .app bundle found in IPA") }
                       return
                   }
+
                   progress(0.5, "Installing \(appBundle.lastPathComponent)...")
-                  DispatchQueue.main.async { globallogger.log("[IPA] Installing bundle: \(appBundle.lastPathComponent)") }
+                  globallogger.log("[IPA] Installing bundle: \(appBundle.lastPathComponent)")
+
                   let result = install_app_bundle(appBundle.path)
                   globallogger.log("[IPA] install_app_bundle() returned \(result)")
+
                   progress(1.0, result == 0 ? "Done!" : "Install failed")
-                  DispatchQueue.main.async {
-                      globallogger.log(result == 0 ? "[IPA] Install OK" : "[IPA] Install failed: code \(result)")
-                      completion(result == 0, result == 0 ? nil : "install_app_bundle returned \(result)")
-                  }
+                  globallogger.log(result == 0 ? "[IPA] Install OK" : "[IPA] Install failed: code \(result)")
+                  DispatchQueue.main.async { completion(result == 0, result == 0 ? nil : "install_app_bundle returned \(result)") }
               } catch {
                   globallogger.log("[IPA] Exception during install: \(error.localizedDescription)")
                   DispatchQueue.main.async { completion(false, error.localizedDescription) }
