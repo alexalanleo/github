@@ -21,19 +21,33 @@ struct controller: App {
     @State private var didInitOffsets: Bool = false
 
     init() {
+        globallogger.log("[INIT] Installing crash protection...")
         CrashProtection.install()
+        globallogger.log("[INIT] Crash protection installed")
 
         #if DEBUG
         g_debugbuild = true
+        globallogger.log("[INIT] Debug build detected")
+        #else
+        globallogger.log("[INIT] Release build")
         #endif
 
-        // fix file picker
+        globallogger.log("[INIT] Applying document picker fix...")
         let fixMethod = class_getInstanceMethod(UIDocumentPickerViewController.self, #selector(UIDocumentPickerViewController.fix_init(forOpeningContentTypes:asCopy:)))!
         let origMethod = class_getInstanceMethod(UIDocumentPickerViewController.self, #selector(UIDocumentPickerViewController.init(forOpeningContentTypes:asCopy:)))!
         method_exchangeImplementations(origMethod, fixMethod)
+        globallogger.log("[INIT] Document picker fix applied")
 
-        if keepalive { toggleka() }
+        if keepalive {
+            globallogger.log("[INIT] Restoring keepalive (was enabled last session)")
+            toggleka()
+        } else {
+            globallogger.log("[INIT] Keepalive not enabled")
+        }
+
+        globallogger.log("[INIT] Starting stdout/stderr capture")
         globallogger.capture()
+        globallogger.log("[INIT] App init complete")
     }
 
     var body: some Scene {
@@ -46,10 +60,13 @@ struct controller: App {
                     didInitOffsets = true
 
                     if !g_isunsupported {
+                        globallogger.log("[OFFSETS] Initialising kernel offsets...")
                         init_offsets()
                         offsets_init()
                         mgr.hasOffsets = true
                         globallogger.log("[OK] offsets initialised")
+                    } else {
+                        globallogger.log("[WARN] Skipping offsets init — device/iOS not supported")
                     }
                 }
         }
@@ -61,4 +78,3 @@ extension UIDocumentPickerViewController {
         return self.fix_init(forOpeningContentTypes: contentTypes, asCopy: true)
     }
 }
-
