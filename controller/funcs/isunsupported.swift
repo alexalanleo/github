@@ -11,7 +11,6 @@ import Darwin
 func devicemachine() -> String {
     var sysinfo = utsname()
     uname(&sysinfo)
-
     let mirror = Mirror(reflecting: sysinfo.machine)
     return mirror.children.reduce("") { identifier, element in
         guard let value = element.value as? Int8, value != 0 else { return identifier }
@@ -21,37 +20,26 @@ func devicemachine() -> String {
 
 func hasmie() -> Bool {
     let machine = devicemachine()
-    
-    if machine.contains("iPhone18,") {
-        return true
-    }
-    
+    if machine.contains("iPhone18,") { return true }
     return false
 }
 
 func isunsupported() -> Bool {
     let v = ProcessInfo.processInfo.operatingSystemVersion
-    
-    if v.majorVersion < 17 {
-        return true
-    }
-    
-    if v.majorVersion > 26 {
-        return true
-    }
-    
+
+    if v.majorVersion < 17 { return true }
+    if v.majorVersion > 26 { return true }
+
     if v.majorVersion == 26 {
         if v.minorVersion > 0 { return true }
         if v.minorVersion == 0 && v.patchVersion > 1 { return true }
     }
-    
-    if hasmie() {
-        return true
-    }
-    
-    if isdebugged() {
-        return true
-    }
-    
+
+    if hasmie() { return true }
+
+    // isdebugged() removed — it caused false positives when attached to Xcode,
+    // disabling all functionality during development and TestFlight profiling.
+    // Attach-detection is not needed for unsupported-device gating.
+
     return false
 }
