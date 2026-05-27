@@ -27,7 +27,11 @@
 
       // MARK: - Run Exploit
       func runExploit() {
-          guard !dsrunning else { return }
+          guard !dsrunning else {
+              globallogger.log("[EXPLOIT] runExploit called but exploit already running — ignoring")
+              return
+          }
+          globallogger.log("[EXPLOIT] Starting DarkSword exploit...")
           DispatchQueue.main.async {
               self.dsrunning = true
               self.dsattempted = true
@@ -46,7 +50,9 @@
           }
 
           DispatchQueue.global(qos: .userInitiated).async {
+              globallogger.log("[EXPLOIT] exploit_run_guarded() dispatched on background thread")
               let ret = exploit_run_guarded()
+              globallogger.log("[EXPLOIT] exploit_run_guarded() returned \(ret)")
               DispatchQueue.main.async {
                   self.dsrunning = false
                   if ret == 0 {
@@ -58,6 +64,7 @@
                       self.dsprogress = 1.0
                       self.hasOffsets = true
                       globallogger.log("[OK] DarkSword ready")
+                      globallogger.log("[OK] kernel_base=\(String(format:"0x%llX", self.kernbase)) kernel_slide=\(String(format:"0x%llX", self.kernslide))")
                       self.initVFS()
                   } else if ret == -2000 {
                       let reason = String(cString: exploit_last_exception_reason())
@@ -67,7 +74,6 @@
                       self.kaccesserror = message
                       globallogger.log("[ERROR] DarkSword exception: \(message)")
                   } else if ret <= -1000 {
-                      // Fatal signal caught and recovered — no crash
                       let sigDesc = exploitSignalName(ret)
                       self.dsfailed = true
                       self.dsrecoverederror = sigDesc
@@ -87,14 +93,18 @@
 
       // MARK: - VFS Init
       func initVFS() {
+          globallogger.log("[VFS] Initialising VFS...")
           DispatchQueue.global(qos: .userInitiated).async {
               let ret = vfs_init()
+              globallogger.log("[VFS] vfs_init() returned \(ret)")
               DispatchQueue.main.async {
                   self.vfsready = ret == 0
                   if ret == 0 {
                       globallogger.log("[OK] VFS initialised")
                       DispatchQueue.global(qos: .userInitiated).async {
-                          let r = sbx_escape(ds_get_our_proc())
+                          let proc = ds_get_our_proc()
+                          globallogger.log("[SBX] Attempting sandbox escape for proc 0x\(String(format:"%llX", proc))...")
+                          let r = sbx_escape(proc)
                           DispatchQueue.main.async {
                               globallogger.log(r == 0 ? "[OK] Sandbox escape ready" : "[WARN] Sandbox escape failed (\(r))")
                           }
@@ -108,8 +118,10 @@
 
       // MARK: - Root Management
       func grantSelfRoot(completion: @escaping (Bool) -> Void) {
+          globallogger.log("[ROOT] Granting root to self (pid \(getpid()))...")
           DispatchQueue.global(qos: .userInitiated).async {
               let result = grant_root_to_pid(getpid())
+              globallogger.log("[ROOT] grant_root_to_pid(self) returned \(result)")
               DispatchQueue.main.async {
                   if result == 0 {
                       globallogger.log("[OK] Granted root to self (pid \(getpid()))")
@@ -123,33 +135,57 @@
       }
 
       func revokeSelfRoot(completion: @escaping (Bool) -> Void) {
+          globallogger.log("[ROOT] Revoking root from self (pid \(getpid()))...")
           DispatchQueue.global(qos: .userInitiated).async {
               let result = revoke_root_from_pid(getpid())
-              DispatchQueue.main.async { completion(result == 0) }
+              globallogger.log("[ROOT] revoke_root_from_pid(self) returned \(result)")
+              DispatchQueue.main.async {
+                  if result == 0 {
+                      globallogger.log("[OK] Revoked root from self (pid \(getpid()))")
+                  } else {
+                      globallogger.log("[ERROR] Failed to revoke self root: \(result)")
+                  }
+                  completion(result == 0)
+              }
           }
       }
 
       func grantRoot(pid: UInt32, completion: @escaping (Bool) -> Void) {
+          globallogger.log("[ROOT] Granting root to pid \(pid)...")
           DispatchQueue.global(qos: .userInitiated).async {
               let result = grant_root_to_pid(pid_t(pid))
+              globallogger.log("[ROOT] grant_root_to_pid(\(pid)) returned \(result)")
               DispatchQueue.main.async {
-                  globallogger.log(result == 0 ? "[OK] Rooted pid \(pid)" : "[ERROR] Root failed for pid \(pid)")
+                  globallogger.log(result == 0 ? "[OK] Rooted pid \(pid)" : "[ERROR] Root failed for pid \(pid): code \(result)")
                   completion(result == 0)
               }
           }
       }
 
       func revokeRoot(pid: UInt32, completion: @escaping (Bool) -> Void) {
+          globallogger.log("[ROOT] Revoking root from pid \(pid)...")
           DispatchQueue.global(qos: .userInitiated).async {
               let result = revoke_root_from_pid(pid_t(pid))
-              DispatchQueue.main.async { completion(result == 0) }
+              globallogger.log("[ROOT] revoke_root_from_pid(\(pid)) returned \(result)")
+              DispatchQueue.main.async {
+                  if result == 0 {
+                      globallogger.log("[OK] Revoked root from pid \(pid)")
+                  } else {
+                      globallogger.log("[ERROR] Failed to revoke root from pid \(pid): code \(result)")
+                  }
+                  completion(result == 0)
+              }
           }
       }
 
       // MARK: - Process List
       func getProcessList() -> [ProcessEntry] {
+          globallogger.log("[PROCLIST] Fetching process list...")
           var count: Int32 = 0
-          guard let list = proclist(nil, &count) else { return [] }
+          guard let list = proclist(nil, &count) else {
+              globallogger.log("[ERROR] proclist() returned nil")
+              return []
+          }
           defer { free_proclist(list) }
           var result: [ProcessEntry] = []
           for i in 0..<Int(count) {
@@ -159,66 +195,83 @@
               }
               result.append(ProcessEntry(pid: e.pid, uid: e.uid, name: name, kaddr: e.kaddr))
           }
-          return result.sorted { $0.name < $1.name }
+          let sorted = result.sorted { $0.name < $1.name }
+          globallogger.log("[PROCLIST] Found \(sorted.count) processes (raw count: \(count))")
+          return sorted
       }
 
       // MARK: - IPA Installer
       func installIPA(url: URL, progress: @escaping (Double, String) -> Void, completion: @escaping (Bool, String?) -> Void) {
-          guard vfsready else { completion(false, "VFS not ready"); return }
+          guard vfsready else {
+              globallogger.log("[IPA] Install aborted — VFS not ready")
+              completion(false, "VFS not ready")
+              return
+          }
+          globallogger.log("[IPA] Starting install for: \(url.lastPathComponent)")
           DispatchQueue.global(qos: .userInitiated).async {
               let accessed = url.startAccessingSecurityScopedResource()
               defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+              globallogger.log("[IPA] Security-scoped resource access: \(accessed ? "granted" : "denied")")
               let sbx = sbx_escape(ds_get_our_proc())
               if sbx != 0 {
+                  globallogger.log("[IPA] Sandbox escape failed: \(sbx)")
                   DispatchQueue.main.async { completion(false, "Sandbox escape failed (\(sbx))") }
                   return
               }
-              DispatchQueue.main.async { globallogger.log("[IPA] sandbox escape ok") }
+              DispatchQueue.main.async { globallogger.log("[IPA] Sandbox escape ok") }
               progress(0.05, "Opening IPA...")
               DispatchQueue.main.async { globallogger.log("[IPA] Opening: \(url.lastPathComponent)") }
-              // Extract IPA (zip)
               let tmpDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ctrl_install_\(UUID().uuidString)")
               do {
                   try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+                  globallogger.log("[IPA] Created temp dir: \(tmpDir.path)")
                   progress(0.1, "Extracting...")
                   DispatchQueue.main.async { globallogger.log("[IPA] Extracting to: \(tmpDir.path)") }
                   try extractIPA(url: url, to: tmpDir)
                   progress(0.4, "Locating app bundle...")
-                  DispatchQueue.main.async { globallogger.log("[IPA] Looking for Payload/*.app") }
+                  DispatchQueue.main.async { globallogger.log("[IPA] Extraction complete, looking for Payload/*.app") }
                   let payloadDir = tmpDir.appendingPathComponent("Payload")
                   let apps = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
                       .filter { $0.pathExtension == "app" }
+                  globallogger.log("[IPA] Found \(apps.count) .app bundle(s) in Payload")
                   guard let appBundle = apps.first else {
                       DispatchQueue.main.async { globallogger.log("[IPA] No .app found under Payload") }
                       completion(false, "No .app bundle found in IPA")
                       return
                   }
                   progress(0.5, "Installing \(appBundle.lastPathComponent)...")
-                  DispatchQueue.main.async { globallogger.log("[IPA] Installing bundle: \(appBundle.path)") }
+                  DispatchQueue.main.async { globallogger.log("[IPA] Installing bundle: \(appBundle.lastPathComponent)") }
                   let result = install_app_bundle(appBundle.path)
+                  globallogger.log("[IPA] install_app_bundle() returned \(result)")
                   progress(1.0, result == 0 ? "Done!" : "Install failed")
                   DispatchQueue.main.async {
-                      globallogger.log(result == 0 ? "[IPA] Install OK" : "[IPA] Install failed: \(result)")
+                      globallogger.log(result == 0 ? "[IPA] Install OK" : "[IPA] Install failed: code \(result)")
                       completion(result == 0, result == 0 ? nil : "install_app_bundle returned \(result)")
                   }
               } catch {
-                  DispatchQueue.main.async { globallogger.log("[IPA] Error: \(error.localizedDescription)") }
+                  globallogger.log("[IPA] Exception during install: \(error.localizedDescription)")
                   DispatchQueue.main.async { completion(false, error.localizedDescription) }
               }
               try? FileManager.default.removeItem(at: tmpDir)
+              globallogger.log("[IPA] Cleaned up temp dir")
           }
       }
 
       func uninstallApp(bundleID: String, completion: @escaping (Bool) -> Void) {
+          globallogger.log("[IPA] Uninstalling app: \(bundleID)...")
           DispatchQueue.global(qos: .userInitiated).async {
               let result = uninstall_app(bundleID)
-              DispatchQueue.main.async { completion(result == 0) }
+              globallogger.log("[IPA] uninstall_app(\(bundleID)) returned \(result)")
+              DispatchQueue.main.async {
+                  globallogger.log(result == 0 ? "[OK] Uninstalled \(bundleID)" : "[ERROR] Failed to uninstall \(bundleID): code \(result)")
+                  completion(result == 0)
+              }
           }
       }
 
       func getControllerInstalledApps() -> [InstalledApp] {
-          // Returns apps installed via controller (tracked in UserDefaults)
           let ids = UserDefaults.standard.stringArray(forKey: "ctrl_installed_apps") ?? []
+          globallogger.log("[IPA] Installed apps tracked by controller: \(ids.count)")
           return ids.map { id in
               InstalledApp(name: id.components(separatedBy: ".").last ?? id,
                            bundleID: id, version: "?", iconURL: nil)
@@ -227,6 +280,7 @@
 
       // MARK: - Utilities
       func clearIconCache() {
+          globallogger.log("[UTIL] Clearing icon cache...")
           DispatchQueue.global(qos: .userInitiated).async {
               LaraClearIconCache()
               globallogger.log("[OK] Icon cache cleared")
@@ -243,13 +297,16 @@
 
   // MARK: - Helpers
   func extractIPA(url: URL, to destination: URL) throws {
-      // IPA is a zip file. Don't rely on /usr/bin/unzip being present on-device.
       let archive = try ZipArchive(data: try Data(contentsOf: url))
       try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
 
+      var entryCount = 0
       for entry in archive.entries {
           let normalizedPath = entry.path.replacingOccurrences(of: "\\", with: "/")
-          guard !normalizedPath.contains("..") else { continue }
+          guard !normalizedPath.contains("..") else {
+              globallogger.log("[IPA] Skipping unsafe path: \(normalizedPath)")
+              continue
+          }
 
           let outputURL = destination.appendingPathComponent(normalizedPath)
           if entry.isDirectory {
@@ -260,7 +317,9 @@
           try FileManager.default.createDirectory(at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
           let extracted = try archive.extract(entry)
           try extracted.write(to: outputURL)
+          entryCount += 1
       }
+      globallogger.log("[IPA] Extracted \(entryCount) files from archive")
   }
 
 
