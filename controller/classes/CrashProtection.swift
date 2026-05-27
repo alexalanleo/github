@@ -7,24 +7,18 @@ import Foundation
 import Darwin
 import UIKit
 
-// MARK: - Crash Protection
-
 enum CrashProtection {
 
-    // Call once at app startup
     static func install() {
         NSSetUncaughtExceptionHandler(exceptionHandler)
         installsignalhandlers()
         checkpreviouscrashlogs()
     }
 
-    // MARK: - Uncaught ObjC / Swift exceptions
-
     private static let exceptionHandler: @convention(c) (NSException) -> Void = { exception in
         let symbols = exception.callStackSymbols.enumerated()
             .map { "  #\($0.offset)  \($0.element)" }
             .joined(separator: "\n")
-
         let report = """
         [CRASH] Uncaught Exception
         Name     : \(exception.name.rawValue)
@@ -37,16 +31,8 @@ enum CrashProtection {
         globallogger.log("[CRASH] \(exception.name.rawValue): \(exception.reason ?? "")")
     }
 
-    // MARK: - Fatal signal handlers
-
     private static let signals: [Int32] = [
-        SIGSEGV,  // segmentation fault
-        SIGABRT,  // abort (assert, NSException re-raise)
-        SIGBUS,   // bus error (misaligned kernel pointer access)
-        SIGILL,   // illegal instruction
-        SIGFPE,   // floating-point / divide-by-zero
-        SIGTRAP,  // debugger trap / breakpoint
-        SIGPIPE,  // broken pipe
+        SIGSEGV, SIGABRT, SIGBUS, SIGILL, SIGFPE, SIGTRAP, SIGPIPE,
     ]
 
     private static func installsignalhandlers() {
@@ -54,7 +40,7 @@ enum CrashProtection {
             var sa = sigaction()
             sa.__sigaction_u.__sa_handler = sighandler
             sigemptyset(&sa.sa_mask)
-            sa.sa_flags = Int32(SA_RESETHAND)   // restore default after first catch
+            sa.sa_flags = Int32(SA_RESETHAND)
             sigaction(sig, &sa, nil)
         }
     }
@@ -71,29 +57,22 @@ enum CrashProtection {
         case SIGPIPE:  name = "SIGPIPE  (broken pipe)"
         default:       name = "signal \(sig)"
         }
-        let report = "[CRASH] Fatal signal: \(name)"
-        writecrashdump(report)
-        // re-raise so the OS can generate its own crash report
+        writecrashdump("[CRASH] Fatal signal: \(name)")
         raise(sig)
     }
-
-    // MARK: - Crash file writer
 
     static func writecrashdump(_ info: String) {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let logsDir = docs.appendingPathComponent("Logs", isDirectory: true)
         try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
-
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = fmt.string(from: Date())
         let url = logsDir.appendingPathComponent("crash_\(timestamp).txt")
-
         let device  = UIDevice.current
         let bundle  = Bundle.main
         let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let build   = bundle.infoDictionary?["CFBundleVersion"] as? String ?? "?"
-
         let full = """
         ══════════════════════════════════════════
                   controller CRASH REPORT
@@ -108,7 +87,6 @@ enum CrashProtection {
         try? full.write(to: url, atomically: true, encoding: .utf8)
     }
 
-    // MARK: - Surface recovered exploit crashes
     static func writeRecoveredCrash(_ description: String) {
         let device  = UIDevice.current
         let bundle  = Bundle.main
@@ -126,7 +104,8 @@ enum CrashProtection {
         writecrashdump(report)
     }
 
-    // MARK: - Surface previous crash on next launch
+    // MARK: - Surface previous crash on next launch (once only)
+    private static let seenCrashsKey = "ctrl_seen_crash_files"
 
     private static func checkpreviouscrashlogs() {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -137,12 +116,19 @@ enum CrashProtection {
             options: .skipsHiddenFiles
         ) else { return }
 
+        let seenNames = Set(UserDefaults.standard.stringArray(forKey: seenCrashsKey) ?? [])
+
         let crashes = files
             .filter { $0.lastPathComponent.hasPrefix("crash_") && $0.pathExtension == "txt" }
-            .sorted { ($0.lastPathComponent) > ($1.lastPathComponent) }
-            .prefix(3)   // surface at most the last 3 crashes
+            .filter { !seenNames.contains($0.lastPathComponent) }
+            .sorted { $0.lastPathComponent > $1.lastPathComponent }
+            .prefix(3)
 
+        guard !crashes.isEmpty else { return }
+
+        var newSeen = Array(seenNames)
         for url in crashes {
+            newSeen.append(url.lastPathComponent)
             if let content = try? String(contentsOf: url, encoding: .utf8) {
                 let lines = content.components(separatedBy: "\n")
                     .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -152,6 +138,7 @@ enum CrashProtection {
                 }
             }
         }
+
+        UserDefaults.standard.set(newSeen, forKey: seenCrashsKey)
     }
 }
-
