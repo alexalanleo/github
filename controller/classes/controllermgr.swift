@@ -166,6 +166,8 @@
       func installIPA(url: URL, progress: @escaping (Double, String) -> Void, completion: @escaping (Bool, String?) -> Void) {
           guard vfsready else { completion(false, "VFS not ready"); return }
           DispatchQueue.global(qos: .userInitiated).async {
+              let accessed = url.startAccessingSecurityScopedResource()
+              defer { if accessed { url.stopAccessingSecurityScopedResource() } }
               let sbx = sbx_escape(ds_get_our_proc())
               if sbx != 0 {
                   DispatchQueue.main.async { completion(false, "Sandbox escape failed (\(sbx))") }
