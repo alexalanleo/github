@@ -84,6 +84,7 @@ final class controllermgr: ObservableObject {
                     self.dsprogress = 1.0
                     self.hasOffsets = true
                     globallogger.log("[OK] DarkSword ready")
+                    if !kaenabled { toggleka() } // keep KRW socket alive during installs
                     globallogger.log("[OK] kernel_base=\(hex(self.kernbase)) kernel_slide=\(hex(self.kernslide))")
                     self.initVFS()
                 } else if ret == -2000 {
