@@ -548,6 +548,124 @@ final class controllermgr: ObservableObject {
         }
     }
 
+    // MARK: - Root Toolbox
+    func logRootCapabilities() {
+        globallogger.log("[ROOT/TOOLS] Available root-powered actions:")
+        globallogger.log("[ROOT/TOOLS] • Install IPAs into /var/containers/Bundle/Application")
+        globallogger.log("[ROOT/TOOLS] • Create and overwrite root-owned files through launchd + VFS")
+        globallogger.log("[ROOT/TOOLS] • Browse protected directories through VFS")
+        globallogger.log("[ROOT/TOOLS] • Clear icon cache and respring after filesystem changes")
+        globallogger.log("[ROOT/TOOLS] Use the toolbox buttons in Root Manager to try safe examples.")
+    }
+
+    func rootFileOpsReady() -> Bool {
+        guard dsready else {
+            globallogger.log("[ROOT/TOOLS] Kernel exploit is not ready")
+            return false
+        }
+
+        let initResult = root_init_launchd_rc()
+        guard initResult == 0, root_launchd_rc_ready() else {
+            globallogger.log("[ROOT/TOOLS] launchd root RemoteCall unavailable (err=\(initResult))")
+            return false
+        }
+
+        return true
+    }
+
+    func createRootProofFile(completion: ((Bool) -> Void)? = nil) {
+        globallogger.log("[ROOT/TOOLS] Creating root proof file...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard self.vfsready else {
+                DispatchQueue.main.async {
+                    globallogger.log("[ROOT/TOOLS] VFS is not ready; cannot fill root-created file")
+                    completion?(false)
+                }
+                return
+            }
+            guard self.rootFileOpsReady() else {
+                DispatchQueue.main.async { completion?(false) }
+                return
+            }
+
+            let target = "/var/mobile/Library/controller-root-proof.txt"
+            let stamp = ISO8601DateFormatter().string(from: Date())
+            let text = "controller root proof\ncreated: \(stamp)\nkernel_base: \(hex(ds_get_kernel_base()))\n"
+            let data = Data(text.utf8)
+            let tmp = NSTemporaryDirectory() + "ctrl_root_proof_\(UUID().uuidString).txt"
+
+            do {
+                try data.write(to: URL(fileURLWithPath: tmp))
+            } catch {
+                DispatchQueue.main.async {
+                    globallogger.log("[ROOT/TOOLS] Failed to write temp proof file: \(error.localizedDescription)")
+                    completion?(false)
+                }
+                return
+            }
+            defer { try? FileManager.default.removeItem(atPath: tmp) }
+
+            let createResult = root_creat_sized_as_root(target, 0o644, off_t(data.count))
+            guard createResult == 0 else {
+                DispatchQueue.main.async {
+                    globallogger.log("[ROOT/TOOLS] root_creat_sized_as_root failed for \(target): \(createResult)")
+                    completion?(false)
+                }
+                return
+            }
+
+            let copyResult = vfs_overwritefile(target, tmp)
+            DispatchQueue.main.async {
+                if copyResult == 0 {
+                    globallogger.log("[OK] Root proof file written: \(target)")
+                } else {
+                    globallogger.log("[ROOT/TOOLS] vfs_overwritefile failed for proof file: \(copyResult)")
+                }
+                completion?(copyResult == 0)
+            }
+        }
+    }
+
+    func listInstalledAppContainers(limit: Int = 20) {
+        let path = "/var/containers/Bundle/Application"
+        globallogger.log("[ROOT/TOOLS] Listing \(path)...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let entries = self.vfslistdir(path: path) else {
+                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Could not list \(path)") }
+                return
+            }
+
+            let dirs = entries.filter { $0.isDir }.prefix(limit)
+            DispatchQueue.main.async {
+                globallogger.log("[ROOT/TOOLS] Found \(entries.count) entries in app container directory")
+                for entry in dirs {
+                    globallogger.log("[ROOT/TOOLS] • \(entry.name)/")
+                }
+                if entries.count > limit {
+                    globallogger.log("[ROOT/TOOLS] ...and \(entries.count - limit) more entries")
+                }
+            }
+        }
+    }
+
+    func readSystemVersionWithRoot() {
+        let path = "/System/Library/CoreServices/SystemVersion.plist"
+        globallogger.log("[ROOT/TOOLS] Reading \(path)...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let data = self.vfsread(path: path, maxSize: 64 * 1024),
+                  let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] else {
+                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Could not read system version plist") }
+                return
+            }
+
+            let version = plist["ProductVersion"] as? String ?? "?"
+            let build = plist["ProductBuildVersion"] as? String ?? "?"
+            DispatchQueue.main.async {
+                globallogger.log("[ROOT/TOOLS] iOS \(version) (build \(build))")
+            }
+        }
+    }
+
     // MARK: - Utilities
     func clearIconCache() {
         globallogger.log("[UTIL] Clearing icon cache...")

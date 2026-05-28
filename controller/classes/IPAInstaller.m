@@ -18,8 +18,8 @@
 //
 //  3. copy_bundle_recursive(srcApp, dstApp)
 //     For each directory:   root_mkdir_as_root(dstSubdir)
-//     For each file:        root_creat_as_root(dstFile, 0644)  -- creates
-//                           empty file with correct ownership --  then
+//     For each file:        root_creat_sized_as_root(dstFile, 0644, size)
+//                           creates a root-owned file large enough for
 //                           vfs_overwritefile(dstFile, srcFile) -- kernel
 //                           VFS writes the content bypassing DAC.
 //
@@ -82,12 +82,21 @@ static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir, BOOL useRoo
         } else {
             if (useRootRC) {
                 // Create the destination file with root ownership via launchd RC.
-                // vfs_overwritefile cannot create new files — it needs an existing target.
-                int cr = root_creat_as_root(dstItem.UTF8String, 0644);
+                // vfs_overwritefile cannot create or grow files: it opens the target
+                // read-only and mmaps the existing size. Pre-size the root-owned
+                // target to match the source before filling it via VFS.
+                NSError *attrErr = nil;
+                NSDictionary *attrs = [fm attributesOfItemAtPath:srcItem error:&attrErr];
+                if (!attrs) {
+                    NSLog(@"[controller] attributesOfItemAtPath failed %@: %@", srcItem, attrErr);
+                    return -14;
+                }
+                off_t srcSize = (off_t)[attrs fileSize];
+                int cr = root_creat_sized_as_root(dstItem.UTF8String, 0644, srcSize);
                 if (cr != 0) {
-                    NSLog(@"[controller] root_creat_as_root failed: %@ (err=%d)", dstItem, cr);
-                    // Non-fatal: vfs_overwritefile may still work if the
-                    // directory was freshly created (kernel VFS bypasses DAC).
+                    NSLog(@"[controller] root_creat_sized_as_root failed: %@ size=%lld (err=%d)",
+                          dstItem, (long long)srcSize, cr);
+                    return cr;
                 }
                 // Kernel VFS copy — bypasses Unix DAC regardless of ownership.
                 int r = vfs_overwritefile(dstItem.UTF8String, srcItem.UTF8String);
