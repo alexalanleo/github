@@ -400,8 +400,16 @@ final class controllermgr: ObservableObject {
             let result = grant_root_to_pid(getpid())
             globallogger.log("[ROOT] grant_root_to_pid(self) returned \(result)")
             DispatchQueue.main.async {
-                globallogger.log(result == 0 ? "[OK] Granted root to self" : "[ERROR] Failed to grant self root: \(result)")
-                completion(result == 0)
+                // -99 = GRANT_ROOT_ERR_PAC_ARM64E: proc_ro swap blocked by PAC address
+                // diversity + PPL on A18. Root-level file ops still work via the
+                // RemoteCall-as-launchd channel (root_init_launchd_rc). Not a failure.
+                let pac = result == -99
+                if pac {
+                    globallogger.log("[OK] arm64e: root file ops via launchd RemoteCall (uid=0 in launchd context)")
+                } else {
+                    globallogger.log(result == 0 ? "[OK] Granted root to self (getuid=0)" : "[ERROR] Failed to grant self root: \(result)")
+                }
+                completion(result == 0 || pac)
             }
         }
     }
@@ -412,8 +420,10 @@ final class controllermgr: ObservableObject {
             let result = revoke_root_from_pid(getpid())
             globallogger.log("[ROOT] revoke_root_from_pid(self) returned \(result)")
             DispatchQueue.main.async {
-                globallogger.log(result == 0 ? "[OK] Revoked root from self" : "[ERROR] Failed to revoke self root: \(result)")
-                completion(result == 0)
+                // On arm64e nothing was swapped — revoke is always a no-op, treat as success.
+                let ok = result == 0 || result == -99 || result == -20
+                globallogger.log(ok ? "[OK] Revoked root from self" : "[ERROR] Failed to revoke self root: \(result)")
+                completion(ok)
             }
         }
     }
@@ -424,7 +434,14 @@ final class controllermgr: ObservableObject {
             let result = grant_root_to_pid(pid_t(pid))
             globallogger.log("[ROOT] grant_root_to_pid(\(pid)) returned \(result)")
             DispatchQueue.main.async {
-                globallogger.log(result == 0 ? "[OK] Rooted pid \(pid)" : "[ERROR] Root failed for pid \(pid): code \(result)")
+                let pac = result == -99
+                if pac {
+                    globallogger.log("[WARN] arm64e: proc_ro swap unavailable for pid \(pid) — PPL+PAC block (err -99)")
+                } else {
+                    globallogger.log(result == 0 ? "[OK] Rooted pid \(pid)" : "[ERROR] Root failed for pid \(pid): code \(result)")
+                }
+                // For non-self pids on arm64e the proc_ro swap is also blocked.
+                // Return false so the UI doesn't show the pid as "rooted".
                 completion(result == 0)
             }
         }
