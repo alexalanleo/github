@@ -39,6 +39,10 @@
                       .padding(.horizontal)
                       .padding(.top, 10)
 
+                      RootToolboxCard()
+                          .padding(.horizontal)
+                          .padding(.top, 12)
+
                       // Process list
                       VStack(alignment: .leading, spacing: 0) {
                           HStack {
@@ -150,6 +154,68 @@
                   DispatchQueue.main.async { if success { selfRooted = true } }
               }
           }
+      }
+  }
+
+
+  // MARK: - Root Toolbox
+  struct RootToolboxCard: View {
+      @EnvironmentObject private var mgr: controllermgr
+
+      var body: some View {
+          VStack(alignment: .leading, spacing: 14) {
+              VStack(alignment: .leading, spacing: 4) {
+                  Label("Root Toolbox", systemImage: "wrench.and.screwdriver.fill")
+                      .font(.headline)
+                      .foregroundColor(.white)
+                  Text("Safe examples that use root file operations and VFS access.")
+                      .font(.caption)
+                      .foregroundColor(.gray)
+              }
+
+              Divider().background(Color.white.opacity(0.1))
+
+              HStack(spacing: 12) {
+                  ActionButton(
+                      icon: "questionmark.circle.fill",
+                      label: "Ideas",
+                      color: .purple,
+                      enabled: mgr.dsready
+                  ) { mgr.logRootCapabilities() }
+
+                  ActionButton(
+                      icon: "doc.badge.plus",
+                      label: "Proof File",
+                      color: .green,
+                      enabled: mgr.dsready && mgr.vfsready
+                  ) { mgr.createRootProofFile() }
+              }
+
+              HStack(spacing: 12) {
+                  ActionButton(
+                      icon: "folder.fill",
+                      label: "List Apps",
+                      color: .blue,
+                      enabled: mgr.vfsready
+                  ) { mgr.listInstalledAppContainers() }
+
+                  ActionButton(
+                      icon: "iphone",
+                      label: "iOS Info",
+                      color: .orange,
+                      enabled: mgr.vfsready
+                  ) { mgr.readSystemVersionWithRoot() }
+              }
+          }
+          .padding(18)
+          .background(
+              RoundedRectangle(cornerRadius: 18)
+                  .fill(Color(white: 0.1))
+                  .overlay(
+                      RoundedRectangle(cornerRadius: 18)
+                          .strokeBorder(Color.purple.opacity(0.25), lineWidth: 1)
+                  )
+          )
       }
   }
 

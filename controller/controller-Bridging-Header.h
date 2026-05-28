@@ -17,6 +17,7 @@
 #import "rc.h"
 #import "RemoteCall.h"
 #import "ExploitGuard.h"
+#import "root.h"
 
 // Root management
 int grant_root_to_pid(pid_t pid);
