@@ -89,17 +89,22 @@ static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir, BOOL useRoo
                     // Non-fatal: vfs_overwritefile may still work if the
                     // directory was freshly created (kernel VFS bypasses DAC).
                 }
-            }
-            // Kernel VFS copy — bypasses Unix DAC regardless of ownership.
-            int r = vfs_overwritefile(dstItem.UTF8String, srcItem.UTF8String);
-            if (r != 0) {
-                NSLog(@"[controller] vfs_overwritefile failed %@ -> %@: %d", srcItem, dstItem, r);
-                if (useRootRC) return r;  // hard fail when using the real path
-                // For staging, fall back to NSFileManager copy
+                // Kernel VFS copy — bypasses Unix DAC regardless of ownership.
+                int r = vfs_overwritefile(dstItem.UTF8String, srcItem.UTF8String);
+                if (r != 0) {
+                    NSLog(@"[controller] vfs_overwritefile failed %@ -> %@: %d", srcItem, dstItem, r);
+                    return r;
+                }
+            } else {
+                // Staging path — directory is mobile-writable; plain NSFileManager copy
+                // is correct and sufficient here.  Do NOT call vfs_overwritefile:
+                //   1. Target files don't pre-exist => open(O_RDONLY) always returns ENOENT.
+                //   2. patchentryprot uses ds_kwrite64 which needs live KRW; KRW can expire
+                //      after ~5 minutes during a large IPA install (observed in session log).
                 NSError *cpErr = nil;
                 if (![fm copyItemAtPath:srcItem toPath:dstItem error:&cpErr]) {
-                    NSLog(@"[controller] fm copyItem fallback also failed: %@", cpErr);
-                    return r;
+                    NSLog(@"[controller] copyItem failed %@ -> %@: %@", srcItem, dstItem, cpErr);
+                    return -13;
                 }
             }
         }
