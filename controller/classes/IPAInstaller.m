@@ -2,7 +2,24 @@
 //  IPAInstaller.m
 //  controller
 //
-//  Installs app bundles using VFS access provided by DarkSword.
+//  Installs app bundles using the mobile-writable staging area.
+//
+//  WHY NO GRANT_ROOT / REVOKE_ROOT
+//  --------------------------------
+//  On A18 (arm64e), grant_root_to_pid() swaps proc->p_proc_ro.  XNU signs
+//  that pointer with address diversity (storage address blended into PAC
+//  discriminant).  Copying launchd's signed value to a different proc
+//  address causes an AUTIA mismatch -> kernel panic.
+//
+//  The caller (controllermgr.swift -installIPA:) has already called
+//  sbx_escape(), which patches our sandbox extensions to give full
+//  read-write access across the filesystem.  /var/mobile/Library/ is
+//  owned by the mobile user, so we can create directories and copy files
+//  there without needing uid=0.
+//
+//  LSApplicationWorkspace accepts app registrations from any absolute path,
+//  so staging under /var/mobile/Library/ctrl_staging/ works fine for
+//  SpringBoard to pick up and launch the app.
 //
 
 #import <Foundation/Foundation.h>
@@ -12,7 +29,10 @@
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
 
-// Recursively set correct permissions on the installed .app bundle
+// Staging directory — must be writable by uid=mobile (501).
+// sbx_escape() ensures sandbox allows writing here.
+#define CTRL_STAGING_DIR  @"/var/mobile/Library/ctrl_staging"
+
 static void fix_permissions_recursive(NSString *path) {
     NSFileManager *fm = [NSFileManager defaultManager];
     NSDictionary *dirAttrs  = @{NSFilePosixPermissions: @(0755)};
@@ -28,58 +48,69 @@ static void fix_permissions_recursive(NSString *path) {
     }
 }
 
-// Install an extracted .app bundle to /var/containers/Bundle/Application/
 int install_app_bundle(const char *appBundlePath) {
     if (!ds_is_ready()) return -1;
 
-    // Grant root so we can write to /var/containers/Bundle/Application/
-    // root.m now patches kauth_cred fields in-place (not proc_ro), bypassing PPL.
-    int rootErr = grant_root_to_pid(getpid());
-    if (rootErr != 0) {
-        NSLog(@"[controller] grant_root_to_pid(%d) failed: %d", getpid(), rootErr);
-        return rootErr;   // return the actual error code for diagnosability
-    }
-
     NSString *srcPath = [NSString stringWithUTF8String:appBundlePath];
-    NSString *appsDir = @"/var/containers/Bundle/Application";
     NSString *destUUID = [[NSUUID UUID] UUIDString];
-    NSString *destDir  = [appsDir stringByAppendingPathComponent:destUUID];
-    NSString *destApp  = [destDir stringByAppendingPathComponent:[srcPath lastPathComponent]];
+
+    // ------------------------------------------------------------------ //
+    // Stage to mobile-writable path.  No root required.                   //
+    // sbx_escape() (called by installIPA before us) unlocks sandbox.      //
+    // ------------------------------------------------------------------ //
+    NSString *stagingBase = CTRL_STAGING_DIR;
+    NSString *destDir     = [stagingBase stringByAppendingPathComponent:destUUID];
+    NSString *destApp     = [destDir stringByAppendingPathComponent:[srcPath lastPathComponent]];
 
     NSFileManager *fm = [NSFileManager defaultManager];
     NSError *err = nil;
 
-    // Create container directory
-    if (![fm createDirectoryAtPath:destDir withIntermediateDirectories:YES attributes:nil error:&err]) {
-        NSLog(@"[controller] Failed to create app dir: %@", err);
-        revoke_root_from_pid(getpid());
-        return -2;
+    // Ensure the staging root exists.
+    if (![fm fileExistsAtPath:stagingBase]) {
+        if (![fm createDirectoryAtPath:stagingBase
+             withIntermediateDirectories:YES attributes:nil error:&err]) {
+            NSLog(@"[controller] Failed to create staging base %@: %@", stagingBase, err);
+            return -2;
+        }
     }
 
-    // Copy the .app bundle
+    // Create per-app container directory.
+    if (![fm createDirectoryAtPath:destDir withIntermediateDirectories:YES
+            attributes:nil error:&err]) {
+        NSLog(@"[controller] Failed to create staging dir %@: %@", destDir, err);
+
+        // Last-chance fallback: try the standard Application path.
+        // This only works if the caller somehow obtained root (non-arm64e device).
+        NSString *appsDir = @"/var/containers/Bundle/Application";
+        destDir  = [appsDir stringByAppendingPathComponent:destUUID];
+        destApp  = [destDir stringByAppendingPathComponent:[srcPath lastPathComponent]];
+        if (![fm createDirectoryAtPath:destDir withIntermediateDirectories:YES
+                attributes:nil error:&err]) {
+            NSLog(@"[controller] Fallback dir also failed: %@", err);
+            return -2;
+        }
+        NSLog(@"[controller] Using fallback Application path: %@", destDir);
+    }
+
+    // Copy the .app bundle.
     if (![fm copyItemAtPath:srcPath toPath:destApp error:&err]) {
         NSLog(@"[controller] Failed to copy app bundle: %@", err);
-        revoke_root_from_pid(getpid());
+        [fm removeItemAtPath:destDir error:nil];
         return -3;
     }
 
-    // Fix permissions so SpringBoard can read it
     fix_permissions_recursive(destApp);
 
-    // Read Info.plist for registration metadata
+    // Read metadata from Info.plist.
     NSString *infoPlistPath = [destApp stringByAppendingPathComponent:@"Info.plist"];
     NSDictionary *info      = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
-    NSString *bundleID      = info[@"CFBundleIdentifier"]
-                           ?: @"unknown";
+    NSString *bundleID      = info[@"CFBundleIdentifier"] ?: @"unknown";
     NSString *bundleName    = info[@"CFBundleDisplayName"]
                            ?: info[@"CFBundleName"]
                            ?: bundleID;
     NSString *version       = info[@"CFBundleShortVersionString"] ?: @"1.0";
 
-    // Revoke root before talking to SpringBoard services
-    revoke_root_from_pid(getpid());
-
-    // Register with LSApplicationWorkspace
+    // Register with LSApplicationWorkspace.
     Class workspace = NSClassFromString(@"LSApplicationWorkspace");
     id ws = [workspace performSelector:@selector(defaultWorkspace)];
 
@@ -101,7 +132,6 @@ int install_app_bundle(const char *appBundlePath) {
     }
 
     if (!registered) {
-        // Fallback: force a full app database rebuild so SpringBoard picks it up
         SEL rebuildSel = NSSelectorFromString(@"_LSPrivateRebuildApplicationDatabasesForSystemApps:registeringPlugins:");
         if ([ws respondsToSelector:rebuildSel]) {
             ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(ws, rebuildSel, YES, YES);
@@ -110,7 +140,6 @@ int install_app_bundle(const char *appBundlePath) {
         }
     }
 
-    // Track in UserDefaults so our UI can list it
     NSMutableArray *installed = [[NSUserDefaults.standardUserDefaults
         stringArrayForKey:@"ctrl_installed_apps"] mutableCopy] ?: [NSMutableArray new];
     if (![installed containsObject:bundleID]) [installed addObject:bundleID];
@@ -132,6 +161,19 @@ int uninstall_app(const char *bundleID) {
             stringArrayForKey:@"ctrl_installed_apps"] mutableCopy] ?: [NSMutableArray new];
         [installed removeObject:bid];
         [NSUserDefaults.standardUserDefaults setObject:installed forKey:@"ctrl_installed_apps"];
+
+        // Also clean up staging directory for this bundle if it exists.
+        NSFileManager *fm = [NSFileManager defaultManager];
+        NSArray *dirs = [fm contentsOfDirectoryAtPath:CTRL_STAGING_DIR error:nil];
+        for (NSString *d in dirs) {
+            NSString *full = [CTRL_STAGING_DIR stringByAppendingPathComponent:d];
+            NSString *ip = [[full stringByAppendingPathComponent:d]
+                               stringByAppendingPathComponent:@"Info.plist"];
+            NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:ip];
+            if ([info[@"CFBundleIdentifier"] isEqualToString:bid]) {
+                [fm removeItemAtPath:full error:nil];
+            }
+        }
     }
     return result ? 0 : -1;
 }
