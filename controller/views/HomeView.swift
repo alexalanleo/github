@@ -24,9 +24,6 @@
                                   .padding(.horizontal)
                           }
 
-                          QuickActionsCard()
-                              .padding(.horizontal)
-
                           if mgr.dsfailed && mgr.dsrecoverederror != nil {
                               ExploitErrorBanner()
                                   .padding(.horizontal)
@@ -181,53 +178,6 @@
                   .font(.system(.subheadline, design: .monospaced))
                   .foregroundColor(valueColor)
           }
-      }
-  }
-
-  // MARK: - Quick Actions Card
-  struct QuickActionsCard: View {
-      @EnvironmentObject private var mgr: controllermgr
-
-      var body: some View {
-          VStack(alignment: .leading, spacing: 14) {
-              Label("Quick Actions", systemImage: "bolt.circle.fill")
-                  .font(.headline)
-                  .foregroundColor(.white)
-
-              Divider().background(Color.white.opacity(0.1))
-
-              HStack(spacing: 12) {
-                  ActionButton(
-                      icon: "arrow.counterclockwise",
-                      label: "Respring",
-                      color: .blue,
-                      enabled: mgr.dsready
-                  ) { respring() }
-
-                  ActionButton(
-                      icon: "trash.fill",
-                      label: "Clear Cache",
-                      color: .orange,
-                      enabled: mgr.dsready
-                  ) { mgr.clearIconCache() }
-
-                  ActionButton(
-                      icon: "memorychip",
-                      label: "KRW Info",
-                      color: .purple,
-                      enabled: mgr.dsready
-                  ) { mgr.showKRWInfo() }
-              }
-          }
-          .padding(20)
-          .background(
-              RoundedRectangle(cornerRadius: 18)
-                  .fill(Color(white: 0.1))
-                  .overlay(
-                      RoundedRectangle(cornerRadius: 18)
-                          .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                  )
-          )
       }
   }
 

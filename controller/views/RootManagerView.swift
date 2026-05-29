@@ -39,10 +39,6 @@
                       .padding(.horizontal)
                       .padding(.top, 10)
 
-                      RootToolboxCard()
-                          .padding(.horizontal)
-                          .padding(.top, 12)
-
                       // Process list
                       VStack(alignment: .leading, spacing: 0) {
                           HStack {
@@ -157,83 +153,6 @@
       }
   }
 
-
-  // MARK: - Root Toolbox
-  struct RootToolboxCard: View {
-      @EnvironmentObject private var mgr: controllermgr
-
-      var body: some View {
-          VStack(alignment: .leading, spacing: 14) {
-              VStack(alignment: .leading, spacing: 4) {
-                  Label("Root Toolbox", systemImage: "wrench.and.screwdriver.fill")
-                      .font(.headline)
-                      .foregroundColor(.white)
-                  Text("Kernel-powered tools — requires exploit to be active.")
-                      .font(.caption)
-                      .foregroundColor(.gray)
-              }
-
-              Divider().background(Color.white.opacity(0.1))
-
-              HStack(spacing: 12) {
-                  ActionButton(
-                      icon: "arrow.clockwise.circle.fill",
-                      label: "Respring",
-                      color: .red,
-                      enabled: mgr.dsready
-                  ) { mgr.respringDevice() }
-
-                  ActionButton(
-                      icon: "photo.stack.fill",
-                      label: "Clear Icon Cache",
-                      color: .orange,
-                      enabled: mgr.dsready
-                  ) { mgr.clearIconCache() }
-              }
-
-              HStack(spacing: 12) {
-                  ActionButton(
-                      icon: "folder.fill",
-                      label: "List Apps",
-                      color: .blue,
-                      enabled: mgr.vfsready
-                  ) { mgr.listInstalledAppContainers() }
-
-                  ActionButton(
-                      icon: "iphone",
-                      label: "iOS Info",
-                      color: .teal,
-                      enabled: mgr.vfsready
-                  ) { mgr.readSystemVersionWithRoot() }
-              }
-
-              HStack(spacing: 12) {
-                  ActionButton(
-                      icon: "cpu.fill",
-                      label: "KRW Info",
-                      color: .cyan,
-                      enabled: mgr.dsready
-                  ) { mgr.showKRWInfo() }
-
-                  ActionButton(
-                      icon: "doc.badge.checkmark.fill",
-                      label: "Proof File",
-                      color: .green,
-                      enabled: mgr.dsready && mgr.vfsready
-                  ) { mgr.createRootProofFile() }
-              }
-          }
-          .padding(18)
-          .background(
-              RoundedRectangle(cornerRadius: 18)
-                  .fill(Color(white: 0.1))
-                  .overlay(
-                      RoundedRectangle(cornerRadius: 18)
-                          .strokeBorder(Color.purple.opacity(0.25), lineWidth: 1)
-                  )
-          )
-      }
-  }
 
   // MARK: - Self Root Card
   struct SelfRootCard: View {

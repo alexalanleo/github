@@ -30,6 +30,12 @@
                   }
                   .tag(taboptions.root)
 
+              ToolsView()
+                  .tabItem {
+                      Label("Tools", systemImage: "wrench.and.screwdriver.fill")
+                  }
+                  .tag(taboptions.tools)
+
               LogsView()
                   .tabItem {
                       Label("Logs", systemImage: "terminal.fill")

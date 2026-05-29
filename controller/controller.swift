@@ -7,7 +7,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 enum taboptions {
-    case home, installer, root, logs
+    case home, installer, root, tools, logs
 }
 
 let g_isunsupported: Bool = isunsupported()
