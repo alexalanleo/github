@@ -27,6 +27,9 @@ struct ToolsView: View {
                         VFSToolsCard()
                             .padding(.horizontal)
 
+                        RootOpsCard()
+                            .padding(.horizontal)
+
                         KernelToolsCard()
                             .padding(.horizontal)
 
@@ -51,27 +54,46 @@ struct SystemToolsCard: View {
             icon: "gearshape.2.fill",
             subtitle: "Device-level actions — requires kernel access."
         ) {
-            HStack(spacing: 12) {
-                ActionButton(
-                    icon: "arrow.clockwise.circle.fill",
-                    label: "Respring",
-                    color: .red,
-                    enabled: mgr.dsready
-                ) { mgr.respringDevice() }
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    ActionButton(
+                        icon: "arrow.clockwise.circle.fill",
+                        label: "Respring",
+                        color: .red,
+                        enabled: mgr.dsready
+                    ) { mgr.respringDevice() }
 
-                ActionButton(
-                    icon: "photo.stack.fill",
-                    label: "Clear Icon Cache",
-                    color: .orange,
-                    enabled: mgr.dsready
-                ) { mgr.clearIconCache() }
+                    ActionButton(
+                        icon: "photo.stack.fill",
+                        label: "Clear Icon Cache",
+                        color: .orange,
+                        enabled: mgr.dsready
+                    ) { mgr.clearIconCache() }
 
-                ActionButton(
-                    icon: "iphone",
-                    label: "iOS Info",
-                    color: .teal,
-                    enabled: mgr.vfsready
-                ) { mgr.readSystemVersionWithRoot() }
+                    ActionButton(
+                        icon: "iphone",
+                        label: "iOS Info",
+                        color: .teal,
+                        enabled: mgr.vfsready
+                    ) { mgr.readSystemVersionWithRoot() }
+                }
+                HStack(spacing: 12) {
+                    ActionButton(
+                        icon: "person.badge.shield.checkmark.fill",
+                        label: "Self Info",
+                        color: .purple,
+                        enabled: mgr.dsready
+                    ) { mgr.showSelfInfo() }
+
+                    ActionButton(
+                        icon: "externaldrive.fill",
+                        label: "APFS Check",
+                        color: .indigo,
+                        enabled: mgr.dsready
+                    ) { mgr.checkAPFS() }
+
+                    Spacer()
+                }
             }
         }
     }
@@ -87,22 +109,76 @@ struct VFSToolsCard: View {
             icon: "folder.badge.gear",
             subtitle: "Kernel filesystem access — requires VFS to be ready."
         ) {
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    ActionButton(
+                        icon: "folder.fill",
+                        label: "List Apps",
+                        color: .blue,
+                        enabled: mgr.vfsready
+                    ) { mgr.listInstalledAppContainers() }
+
+                    ActionButton(
+                        icon: "house.fill",
+                        label: "List /var/mobile",
+                        color: .cyan,
+                        enabled: mgr.vfsready
+                    ) { mgr.listVarMobile() }
+
+                    ActionButton(
+                        icon: "internaldrive.fill",
+                        label: "List /System",
+                        color: .mint,
+                        enabled: mgr.vfsready
+                    ) { mgr.listSystemLib() }
+                }
+                HStack(spacing: 12) {
+                    ActionButton(
+                        icon: "doc.badge.checkmark.fill",
+                        label: "Proof File",
+                        color: .green,
+                        enabled: mgr.dsready && mgr.vfsready
+                    ) { mgr.createRootProofFile() }
+
+                    Spacer()
+                    Spacer()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Root Operations
+struct RootOpsCard: View {
+    @EnvironmentObject private var mgr: controllermgr
+
+    var body: some View {
+        ToolCardContainer(
+            title: "Root Operations",
+            icon: "shield.lefthalf.filled",
+            subtitle: "Root-level operations via launchd RemoteCall."
+        ) {
             HStack(spacing: 12) {
                 ActionButton(
-                    icon: "folder.fill",
-                    label: "List Apps",
-                    color: .blue,
-                    enabled: mgr.vfsready
-                ) { mgr.listInstalledAppContainers() }
+                    icon: "folder.badge.plus",
+                    label: "Root mkdir",
+                    color: .yellow,
+                    enabled: mgr.dsready
+                ) { mgr.makeTestDirAsRoot() }
 
                 ActionButton(
-                    icon: "doc.badge.checkmark.fill",
-                    label: "Proof File",
-                    color: .green,
-                    enabled: mgr.dsready && mgr.vfsready
-                ) { mgr.createRootProofFile() }
+                    icon: "lock.open.fill",
+                    label: "Re-Escape Sbx",
+                    color: .orange,
+                    enabled: mgr.dsready
+                ) { mgr.reSandboxEscape() }
 
-                Spacer()
+                ActionButton(
+                    icon: "arrow.up.forward.circle.fill",
+                    label: "Elevate Sbx",
+                    color: .red,
+                    enabled: mgr.dsready
+                ) { mgr.elevateSandbox() }
             }
         }
     }
@@ -116,7 +192,7 @@ struct KernelToolsCard: View {
         ToolCardContainer(
             title: "Kernel",
             icon: "cpu.fill",
-            subtitle: "KRW diagnostics — requires kernel access."
+            subtitle: "KRW diagnostics and kernel state."
         ) {
             HStack(spacing: 12) {
                 ActionButton(
@@ -126,7 +202,13 @@ struct KernelToolsCard: View {
                     enabled: mgr.dsready
                 ) { mgr.showKRWInfo() }
 
-                Spacer()
+                ActionButton(
+                    icon: "checkmark.shield.fill",
+                    label: "Sbx Status",
+                    color: .purple,
+                    enabled: mgr.dsready
+                ) { mgr.showSbxStatus() }
+
                 Spacer()
             }
         }

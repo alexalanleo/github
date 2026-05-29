@@ -672,6 +672,98 @@ final class controllermgr: ObservableObject {
         respring()
     }
 
+    func showSelfInfo() {
+        let pid = getpid()
+        let uid = getuid()
+        let ppid = getppid()
+        globallogger.log("[INFO] PID: \(pid) | UID: \(uid) | PPID: \(ppid)")
+        globallogger.log("[INFO] Bundle: \(Bundle.main.bundleIdentifier ?? "?")")
+        globallogger.log("[INFO] dsready=\(dsready) vfsready=\(vfsready) sbxready=\(sbxready)")
+    }
+
+    func checkAPFS() {
+        for path in ["/", "/var", "/private/var", "/System"] {
+            let result = isapfs(path)
+            globallogger.log("[APFS] \(path): \(result ? "APFS ✓" : "not APFS")")
+        }
+    }
+
+    func listVarMobile() {
+        let path = "/var/mobile"
+        globallogger.log("[ROOT/TOOLS] Listing \(path)...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let entries = self.vfslistdir(path: path) else {
+                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Could not list \(path)") }
+                return
+            }
+            DispatchQueue.main.async {
+                globallogger.log("[ROOT/TOOLS] \(path): \(entries.count) entries")
+                for e in entries.prefix(30) {
+                    globallogger.log("[ROOT/TOOLS] • \(e.name)\(e.isDir ? "/" : "")")
+                }
+                if entries.count > 30 { globallogger.log("[ROOT/TOOLS] ...and \(entries.count - 30) more") }
+            }
+        }
+    }
+
+    func listSystemLib() {
+        let path = "/System/Library"
+        globallogger.log("[ROOT/TOOLS] Listing \(path)...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let entries = self.vfslistdir(path: path) else {
+                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Could not list \(path)") }
+                return
+            }
+            DispatchQueue.main.async {
+                globallogger.log("[ROOT/TOOLS] \(path): \(entries.count) entries")
+                for e in entries.prefix(30) {
+                    globallogger.log("[ROOT/TOOLS] • \(e.name)\(e.isDir ? "/" : "")")
+                }
+            }
+        }
+    }
+
+    func makeTestDirAsRoot() {
+        globallogger.log("[ROOT/TOOLS] Creating test dir as root...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard self.rootFileOpsReady() else {
+                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Root ops not ready") }
+                return
+            }
+            let path = "/var/mobile/ctrl_testdir"
+            let r = root_mkdir_as_root(path)
+            DispatchQueue.main.async {
+                if r == 0 {
+                    globallogger.log("[OK] root_mkdir_as_root(\(path)) succeeded")
+                } else {
+                    globallogger.log("[ROOT/TOOLS] root_mkdir_as_root failed: \(r)")
+                }
+            }
+        }
+    }
+
+    func reSandboxEscape() {
+        globallogger.log("[ROOT/TOOLS] Re-running sandbox escape...")
+        sbxEscape { success in
+            globallogger.log(success ? "[OK] Sandbox re-escaped" : "[WARN] Sandbox re-escape failed")
+        }
+    }
+
+    func elevateSandbox() {
+        globallogger.log("[ROOT/TOOLS] Elevating sandbox...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            sbx_elevate()
+            DispatchQueue.main.async { globallogger.log("[OK] sbx_elevate() called") }
+        }
+    }
+
+    func showSbxStatus() {
+        globallogger.log("[SBX] dsready=\(dsready) vfsready=\(vfsready) sbxready=\(sbxready)")
+        globallogger.log("[SBX] dsattempted=\(dsattempted) dsfailed=\(dsfailed)")
+        globallogger.log("[SBX] sbxattempted=\(sbxattempted) sbxfailed=\(sbxfailed)")
+        globallogger.log("[SBX] vfsattempted=\(vfsattempted) vfsfailed=\(vfsfailed)")
+    }
+
     func clearIconCache() {
         globallogger.log("[UTIL] Clearing icon cache...")
         DispatchQueue.global(qos: .userInitiated).async {

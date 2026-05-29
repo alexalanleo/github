@@ -13,12 +13,13 @@ CC0001000000000000000003 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; 
 CC0001000000000000000004 /* IPAInstallerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000004 /* IPAInstallerView.swift */; };
 CC0001000000000000000005 /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000005 /* LogsView.swift */; };
 CC0001000000000000000006 /* RootManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000006 /* RootManagerView.swift */; };
+CC0001000000000000000076 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000076 /* ToolsView.swift */; };
 CC0001000000000000000007 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000007 /* SettingsView.swift */; };
 CC0001000000000000000008 /* controllermgr.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000008 /* controllermgr.swift */; };
 CC0001000000000000000009 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000009 /* Logger.swift */; };
 CC7A61280000000000000002 /* zipmgr.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7A61280000000000000001 /* zipmgr.swift */; };
-		CC000100000000000000001A /* CrashProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000001A /* CrashProtection.swift */; };
-		CC000100000000000000001D /* ExploitGuard.m in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000001D /* ExploitGuard.m */; };
+                CC000100000000000000001A /* CrashProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000001A /* CrashProtection.swift */; };
+                CC000100000000000000001D /* ExploitGuard.m in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000001D /* ExploitGuard.m */; };
 CC000100000000000000000A /* fetchkcache.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000A /* fetchkcache.swift */; };
 CC000100000000000000000B /* getbmhash.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000B /* getbmhash.swift */; };
 CC000100000000000000000C /* isdebugged.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000C /* isdebugged.swift */; };
@@ -97,13 +98,14 @@ CC0000000000000000000003 /* HomeView.swift */ = {isa = PBXFileReference; lastKno
 CC0000000000000000000004 /* IPAInstallerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPAInstallerView.swift; sourceTree = "<group>"; };
 CC0000000000000000000005 /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
 CC0000000000000000000006 /* RootManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootManagerView.swift; sourceTree = "<group>"; };
+CC0000000000000000000076 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
 CC0000000000000000000007 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 CC0000000000000000000008 /* controllermgr.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = controllermgr.swift; sourceTree = "<group>"; };
 CC0000000000000000000009 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 CC7A61280000000000000001 /* zipmgr.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = zipmgr.swift; sourceTree = "<group>"; };
-		CC000000000000000000001A /* CrashProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashProtection.swift; sourceTree = "<group>"; };
-		CC000000000000000000001C /* ExploitGuard.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ExploitGuard.h; sourceTree = "<group>"; };
-		CC000000000000000000001D /* ExploitGuard.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExploitGuard.m; sourceTree = "<group>"; };
+                CC000000000000000000001A /* CrashProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashProtection.swift; sourceTree = "<group>"; };
+                CC000000000000000000001C /* ExploitGuard.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ExploitGuard.h; sourceTree = "<group>"; };
+                CC000000000000000000001D /* ExploitGuard.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExploitGuard.m; sourceTree = "<group>"; };
 CC000000000000000000000A /* fetchkcache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = fetchkcache.swift; sourceTree = "<group>"; };
 CC000000000000000000000B /* getbmhash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = getbmhash.swift; sourceTree = "<group>"; };
 CC000000000000000000000C /* isdebugged.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = isdebugged.swift; sourceTree = "<group>"; };
@@ -263,6 +265,7 @@ CC0000000000000000000003 /* HomeView.swift */,
 CC0000000000000000000004 /* IPAInstallerView.swift */,
 CC0000000000000000000005 /* LogsView.swift */,
 CC0000000000000000000006 /* RootManagerView.swift */,
+CC0000000000000000000076 /* ToolsView.swift */,
 CC0000000000000000000007 /* SettingsView.swift */,
 );
 path = views;
@@ -274,7 +277,7 @@ children = (
 CC0000000000000000000008 /* controllermgr.swift */,
 CC0000000000000000000009 /* Logger.swift */,
 CC7A61280000000000000001 /* zipmgr.swift */,
-				CC000000000000000000001A /* CrashProtection.swift */,
+                                CC000000000000000000001A /* CrashProtection.swift */,
 CC0000000000000000000012 /* IPAInstaller.m */,
 CC0000000000000000000013 /* IconCacheClearer.m */,
 CC0000000000000000000014 /* VarCleanBridge.m */,
@@ -588,11 +591,12 @@ CC0001000000000000000003 /* HomeView.swift in Sources */,
 CC0001000000000000000004 /* IPAInstallerView.swift in Sources */,
 CC0001000000000000000005 /* LogsView.swift in Sources */,
 CC0001000000000000000006 /* RootManagerView.swift in Sources */,
+CC0001000000000000000076 /* ToolsView.swift in Sources */,
 CC0001000000000000000007 /* SettingsView.swift in Sources */,
 CC0001000000000000000008 /* controllermgr.swift in Sources */,
 CC0001000000000000000009 /* Logger.swift in Sources */,
 CC7A61280000000000000002 /* zipmgr.swift in Sources */,
-				CC000100000000000000001A /* CrashProtection.swift in Sources */,
+                                CC000100000000000000001A /* CrashProtection.swift in Sources */,
 CC000100000000000000000A /* fetchkcache.swift in Sources */,
 CC000100000000000000000B /* getbmhash.swift in Sources */,
 CC000100000000000000000C /* isdebugged.swift in Sources */,
