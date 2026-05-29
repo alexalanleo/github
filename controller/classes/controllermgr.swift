@@ -56,6 +56,9 @@ final class controllermgr: ObservableObject {
 
     private init() {}
 
+    // KRW socket keepalive — fires every 60 s to prevent icmp6filter PCB expiry.
+    private var krwHeartbeatTimer: DispatchSourceTimer?
+
     // MARK: - Run Exploit
     func runExploit() {
         guard !dsrunning else {
@@ -101,7 +104,8 @@ final class controllermgr: ObservableObject {
                     self.dsprogress = 1.0
                     self.hasOffsets = true
                     globallogger.log("[OK] DarkSword ready")
-                    if !kaenabled { toggleka() } // keep KRW socket alive during installs
+                    if !kaenabled { toggleka() } // keep app alive in background
+                    self.startKRWHeartbeat()     // keep KRW socket alive
                     globallogger.log("[OK] kernel_base=\(hex(self.kernbase)) kernel_slide=\(hex(self.kernslide))")
                     self.initVFS()
                 } else if ret == -2000 {
@@ -980,6 +984,29 @@ final class controllermgr: ObservableObject {
     }
 }
 
+
+    // MARK: - KRW Heartbeat
+    private func startKRWHeartbeat() {
+        krwHeartbeatTimer?.cancel()
+        let t = DispatchSource.makeTimerSource(queue: .global(qos: .background))
+        // First ping after 30s; then every 60s.  The corrupt icmp6filter state
+        // expires after ~4 minutes of idle — 60s cadence gives a comfortable margin.
+        t.schedule(deadline: .now() + 30, repeating: 60)
+        t.setEventHandler {
+            guard ds_is_ready() else { return }
+            ds_krw_heartbeat()
+        }
+        t.resume()
+        krwHeartbeatTimer = t
+        globallogger.log("[KRW] heartbeat timer started (30s delay, 60s interval)")
+    }
+
+    private func stopKRWHeartbeat() {
+        krwHeartbeatTimer?.cancel()
+        krwHeartbeatTimer = nil
+        globallogger.log("[KRW] heartbeat timer stopped")
+    }
+
 // MARK: - IPA extraction
 func extractIPA(url: URL, to destination: URL) throws {
     let archive = try ZipArchive(data: try Data(contentsOf: url))
@@ -1014,4 +1041,5 @@ private func exploitSignalName(_ ret: Int32) -> String {
     default:       return "signal \(sig)"
     }
 }
+
 
