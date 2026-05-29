@@ -18,6 +18,7 @@
 #import "RemoteCall.h"
 #import "ExploitGuard.h"
 #import "root.h"
+#import "ppldebug.h"
 
 // Root management
 int grant_root_to_pid(pid_t pid);
