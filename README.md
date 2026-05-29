@@ -1,3 +1,5 @@
+**This project was made with AI.**
+
 # controller
 
   iOS toolbox using the **DarkSword kernel exploit** (by [rooootdev](https://github.com/rooootdev/lara)).
