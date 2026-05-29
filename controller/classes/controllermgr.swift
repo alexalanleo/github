@@ -908,7 +908,7 @@ final class controllermgr: ObservableObject {
             // SIGHUP locationd to reload config
             let procs = self.getProcessList()
             if let locationdProc = procs.first(where: { $0.name == "locationd" }) {
-                kill(locationdProc.pid, SIGHUP)
+                kill(Int32(locationdProc.pid), SIGHUP)
                 DispatchQueue.main.async { globallogger.log("[SPOOF] SIGHUP sent to locationd (pid \(locationdProc.pid))") }
             }
 
@@ -945,7 +945,7 @@ final class controllermgr: ObservableObject {
             // SIGHUP locationd
             let procs = self.getProcessList()
             if let locationdProc = procs.first(where: { $0.name == "locationd" }) {
-                kill(locationdProc.pid, SIGHUP)
+                kill(Int32(locationdProc.pid), SIGHUP)
                 DispatchQueue.main.async { globallogger.log("[SPOOF] SIGHUP sent to locationd (pid \(locationdProc.pid))") }
             }
             DispatchQueue.main.async {
