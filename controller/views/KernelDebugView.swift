@@ -23,6 +23,7 @@ struct KernelDebugView: View {
                     if !mgr.dsready {
                         DebugKernelBanner().padding(.horizontal).padding(.top, 4)
                     }
+                    PPLGadgetHunterCard().padding(.horizontal)
                     PPLSafetyScanCard().padding(.horizontal)
                     MemoryInspectorCard().padding(.horizontal)
                     PPLSegmentCard().padding(.horizontal)
@@ -570,6 +571,137 @@ private struct AddressRangeCard: View {
                 }
             }
         }
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - PPL Gadget Hunter  ← ONE BUTTON BYPASS FINDER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+private struct GadgetRow: Identifiable {
+    let id = UUID()
+    let fnAddr:   String
+    let storeVA:  String
+    let note:     String
+    let score:    Int       // lower = better
+}
+
+private struct PPLGadgetHunterCard: View {
+    @EnvironmentObject private var mgr: controllermgr
+    @State private var rows:   [GadgetRow] = []
+    @State private var busy    = false
+    @State private var status  = ""
+    @State private var error   = ""
+
+    var body: some View {
+        DebugCard(title: "PPL Bypass Finder", icon: "flame.fill", color: .red) {
+            VStack(alignment: .leading, spacing: 12) {
+
+                Text("Scans every PPL function for store instructions that write to a caller-controlled address. Top results are likely PPL write gadgets usable as a bypass.")
+                    .font(.caption).foregroundColor(.gray)
+
+                DebugBtn(label: "Find PPL Write Gadgets", color: .red,
+                         enabled: mgr.dsready, busy: busy, action: hunt)
+
+                if !error.isEmpty {
+                    Text(error).font(.caption).foregroundColor(.red)
+                }
+
+                if !status.isEmpty {
+                    Text(status)
+                        .font(.caption.bold())
+                        .foregroundColor(rows.isEmpty ? .orange : .green)
+                }
+
+                if !rows.isEmpty {
+                    Text("Top \(min(rows.count, 30)) candidates (sorted best-first):")
+                        .font(.caption2).foregroundColor(.gray)
+
+                    VStack(spacing: 5) {
+                        ForEach(rows.prefix(30)) { row in
+                            GadgetRowView(row: row)
+                        }
+                    }
+
+                    Text("Green = early store, no branches — highest bypass potential.\nHexdump the fn address in Memory Inspector to read the full function.")
+                        .font(.caption2).foregroundColor(.gray).italic()
+                }
+            }
+        }
+    }
+
+    private func hunt() {
+        busy = true; rows = []; status = ""; error = ""
+        DispatchQueue.global(qos: .userInitiated).async {
+            var count: Int32 = 0
+            guard let raw = ppl_find_write_gadgets_auto(&count), count > 0 else {
+                DispatchQueue.main.async {
+                    error = "__PPLTEXT not found or no gadgets — run exploit first"
+                    busy = false
+                }
+                return
+            }
+            var newRows: [GadgetRow] = []
+            for i in 0..<Int(count) {
+                let g = raw[i]
+                let noteStr = withUnsafePointer(to: g.note) { p in
+                    p.withMemoryRebound(to: CChar.self, capacity: 160) { String(cString: $0) }
+                }
+                let score = Int(g.insn_index) * 2 + Int(g.branch_count) * 5
+                newRows.append(GadgetRow(
+                    fnAddr:  "fn:    0x\(String(g.fn_addr,   radix: 16))",
+                    storeVA: "store: 0x\(String(g.store_va, radix: 16))",
+                    note:    noteStr,
+                    score:   score
+                ))
+            }
+            ppl_free_gadgets(raw)
+            let msg = "Found \(count) write gadget(s) across PPL functions"
+            globallogger.log("[GADGET] \(msg)")
+            DispatchQueue.main.async {
+                rows = newRows; status = msg; busy = false
+            }
+        }
+    }
+}
+
+private struct GadgetRowView: View {
+    let row: GadgetRow
+    private var quality: (label: String, color: Color) {
+        switch row.score {
+        case 0..<6:  return ("TOP",  .green)
+        case 6..<16: return ("GOOD", .yellow)
+        default:     return ("WEAK", .orange)
+        }
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(quality.label)
+                    .font(.system(.caption2, design: .monospaced).bold())
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(quality.color).cornerRadius(4)
+                Text(row.note)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }
+            Group {
+                Text(row.fnAddr)
+                Text(row.storeVA)
+            }
+            .font(.system(.caption2, design: .monospaced))
+            .foregroundColor(.cyan)
+            .textSelection(.enabled)
+        }
+        .padding(10)
+        .background(Color(white: row.score < 6 ? 0.1 : 0.07))
+        .cornerRadius(8)
+        .overlay(RoundedRectangle(cornerRadius: 8)
+            .strokeBorder(quality.color.opacity(row.score < 6 ? 0.4 : 0.15), lineWidth: 1))
     }
 }
 
