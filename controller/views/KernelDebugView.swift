@@ -287,7 +287,7 @@ private struct PPLSegmentCard: View {
                     Text("kernel_base = \(kbaseStr)").font(.system(.caption2, design: .monospaced)).foregroundColor(.gray)
                 }
                 DebugBtn(label: "Parse Kernel Mach-O", color: .purple, enabled: mgr.dsready, busy: busy, action: enumerate)
-                if !errMsg.isEmpty { Text(errMsg).font(.caption).foregroundColor(.red) }
+                if !error.isEmpty { Text(error).font(.caption).foregroundColor(.red) }
                 if !rows.isEmpty {
                     VStack(spacing: 4) {
                         HStack {
@@ -604,8 +604,8 @@ private struct PPLGadgetHunterCard: View {
                 DebugBtn(label: "Find PPL Write Gadgets", color: .red,
                          enabled: mgr.dsready, busy: busy, action: hunt)
 
-                if !error.isEmpty {
-                    Text(error).font(.caption).foregroundColor(.red)
+                if !errMsg.isEmpty {
+                    Text(errMsg).font(.caption).foregroundColor(.red)
                 }
 
                 if !status.isEmpty {
