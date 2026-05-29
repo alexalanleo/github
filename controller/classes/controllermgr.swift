@@ -505,9 +505,13 @@ final class controllermgr: ObservableObject {
 
     // MARK: - IPA Installer
     func installIPA(url: URL, progress: @escaping (Double, String) -> Void, completion: @escaping (Bool, String?) -> Void) {
-        guard vfsready else {
-            globallogger.log("[IPA] Install aborted — VFS not ready")
-            completion(false, "VFS not ready")
+        // install_app_bundle copies via NSFileManager to ctrl_staging/ then hands off to
+        // installd via MIInstaller / MobileInstallationInstall — no VFS required.
+        // Sandbox escape (sbxready) is the real gating requirement; it gives us write
+        // access to /var/mobile/Library/ctrl_staging/ where installd picks up the bundle.
+        guard sbxready else {
+            globallogger.log("[IPA] Install aborted — sandbox escape not ready")
+            completion(false, "Sandbox not ready. Run exploit first.")
             return
         }
         globallogger.log("[IPA] Starting install for: \(url.lastPathComponent)")
@@ -1041,5 +1045,6 @@ private func exploitSignalName(_ ret: Int32) -> String {
     default:       return "signal \(sig)"
     }
 }
+
 
 
