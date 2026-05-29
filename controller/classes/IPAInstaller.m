@@ -223,14 +223,21 @@ int install_app_bundle(const char *appBundlePath) {
     Class workspace = NSClassFromString(@"LSApplicationWorkspace");
     id ws = [workspace performSelector:@selector(defaultWorkspace)];
 
+    NSString *executable = info[@"CFBundleExecutable"] ?: bundleName;
+    NSString *minOS      = info[@"MinimumOSVersion"]  ?: @"17.0";
+
     NSDictionary *appDict = @{
         @"Path":                destApp,
         @"ApplicationType":     @"User",
         @"CFBundleIdentifier":  bundleID,
         @"CFBundleDisplayName": bundleName,
+        @"CFBundleName":        bundleName,
         @"CFBundleVersion":     version,
+        @"CFBundleExecutable":  executable,
+        @"MinimumOSVersion":    minOS,
         @"IsDeletable":         @YES,
         @"IsUpgradeable":       @YES,
+        @"LSInstallType":       @(1),
     };
 
     BOOL registered = NO;
@@ -247,6 +254,15 @@ int install_app_bundle(const char *appBundlePath) {
             ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(ws, rebuildSel, YES, YES);
             registered = YES;
             NSLog(@"[controller] triggered _LSPrivateRebuildApplicationDatabasesForSystemApps");
+        }
+    }
+
+    // Notify observers that an app was installed (triggers SpringBoard icon update)
+    if (registered) {
+        SEL notifySel = NSSelectorFromString(@"_sendApplicationInstalledNotification:");
+        if ([ws respondsToSelector:notifySel]) {
+            ((void (*)(id, SEL, id))objc_msgSend)(ws, notifySel, bundleID);
+            NSLog(@"[controller] sent application installed notification for %@", bundleID);
         }
     }
 
@@ -289,3 +305,4 @@ int uninstall_app(const char *bundleID) {
     }
     return result ? 0 : -1;
 }
+
