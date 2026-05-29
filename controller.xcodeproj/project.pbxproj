@@ -85,6 +85,8 @@ CC0001000000000000000072 /* exc.m in Sources */ = {isa = PBXBuildFile; fileRef =
 CC0001000000000000000073 /* pac.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000073 /* pac.m */; };
 CC0001000000000000000074 /* thread.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000074 /* thread.m */; };
 CC0001000000000000000075 /* findcachedataoff.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000075 /* findcachedataoff.m */; };
+CC0001000000000000000078 /* KernelDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000078 /* KernelDebugView.swift */; };
+CC0001000000000000000079 /* ppldebug.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000079 /* ppldebug.m */; };
 CC00010000000000000000D0 /* libgrabkernel2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CC00000000000000000000D0 /* libgrabkernel2.dylib */; };
 CC00010000000000000000D1 /* libxpf.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CC00000000000000000000D1 /* libxpf.dylib */; };
 CC00020000000000000000D0 /* libgrabkernel2.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CC00000000000000000000D0 /* libgrabkernel2.dylib */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -101,6 +103,9 @@ CC0000000000000000000005 /* LogsView.swift */ = {isa = PBXFileReference; lastKno
 CC0000000000000000000006 /* RootManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootManagerView.swift; sourceTree = "<group>"; };
 CC0000000000000000000076 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
 CC0000000000000000000077 /* LocationSpooferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSpooferView.swift; sourceTree = "<group>"; };
+CC0000000000000000000078 /* KernelDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KernelDebugView.swift; sourceTree = "<group>"; };
+CC000000000000000000079H /* ppldebug.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ppldebug.h; sourceTree = "<group>"; };
+CC0000000000000000000079 /* ppldebug.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ppldebug.m; sourceTree = "<group>"; };
 CC0000000000000000000007 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 CC0000000000000000000008 /* controllermgr.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = controllermgr.swift; sourceTree = "<group>"; };
 CC0000000000000000000009 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
@@ -269,6 +274,7 @@ CC0000000000000000000005 /* LogsView.swift */,
 CC0000000000000000000006 /* RootManagerView.swift */,
 CC0000000000000000000076 /* ToolsView.swift */,
 CC0000000000000000000077 /* LocationSpooferView.swift */,
+CC0000000000000000000078 /* KernelDebugView.swift */,
 CC0000000000000000000007 /* SettingsView.swift */,
 );
 path = views;
@@ -456,6 +462,8 @@ CC0000000000000000000053 /* persistence.m */,
 CC000000000000000000054H /* root.h */,
 CC0000000000000000000054 /* root.m */,
 CC000000000000000000055H /* compat.h */,
+CC000000000000000000079H /* ppldebug.h */,
+CC0000000000000000000079 /* ppldebug.m */,
 CC00G0000000000000000020 /* pe */,
 CC00G0000000000000000030 /* TaskRop */,
 );
@@ -666,6 +674,8 @@ CC0001000000000000000072 /* exc.m in Sources */,
 CC0001000000000000000073 /* pac.m in Sources */,
 CC0001000000000000000074 /* thread.m in Sources */,
 CC0001000000000000000075 /* findcachedataoff.m in Sources */,
+CC0001000000000000000078 /* KernelDebugView.swift in Sources */,
+CC0001000000000000000079 /* ppldebug.m in Sources */,
 );
 runOnlyForDeploymentPostprocessing = 0;
 };
