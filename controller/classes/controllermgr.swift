@@ -982,8 +982,6 @@ final class controllermgr: ObservableObject {
             }
         }
     }
-}
-
 
     // MARK: - KRW Heartbeat
     private func startKRWHeartbeat() {
@@ -1006,6 +1004,8 @@ final class controllermgr: ObservableObject {
         krwHeartbeatTimer = nil
         globallogger.log("[KRW] heartbeat timer stopped")
     }
+
+}
 
 // MARK: - IPA extraction
 func extractIPA(url: URL, to destination: URL) throws {
