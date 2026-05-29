@@ -43,14 +43,15 @@
 //
 
 #import <Foundation/Foundation.h>
-#include "kexploit/darksword.h"
-#include "kexploit/root.h"
-#include "kexploit/pe/vfs.h"
+#include "darksword.h"
+#include "root.h"
+#include "vfs.h"
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <notify.h>
 
 #define CTRL_STAGING_DIR     @"/var/mobile/Library/ctrl_staging"
 #define CTRL_CANONICAL_BASE  "/var/containers/Bundle/Application"
