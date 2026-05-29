@@ -4,32 +4,26 @@
 //
 //  Installation flow (A18 arm64e / iOS 18.7.1)
 //  -------------------------------------------
-//  Traditional approach: grant_root_to_pid → proc_ro swap → kernel panic
-//  (PAC address diversity on p_proc_ro, see root.m for full explanation).
+//  launchd RemoteCall approach REMOVED — it kernel-panics on A18 arm64e because
+//  the first RemoteArbCall (malloc in launchd context) causes launchd to crash,
+//  and since launchd is PID 1 the kernel panics the entire device.
 //
-//  New approach (no kernel panic, no PPL writes):
+//  Current approach:
 //
-//  1. root_init_launchd_rc()
-//     Initialise RemoteCall on launchd's task (runs as uid=0).
+//  1. After sbx_escape() our sandbox extensions are expanded.
+//     Try a direct mkdir() on /var/containers/Bundle/Application/<UUID>/.
+//     This succeeds if the sandbox escape grants sufficient filesystem access
+//     beyond standard DAC (observed to work on some configurations).
 //
-//  2. root_mkdir_as_root(dest_container_dir)
-//     Creates /var/containers/Bundle/Application/<UUID>/   — root-owned,
-//     mkdir from uid=501 would be EPERM without this.
+//  2. If direct mkdir fails (EPERM / EACCES), fall back to the staging path
+//     /var/mobile/Library/ctrl_staging/<UUID>/ which is always mobile-writable.
 //
-//  3. copy_bundle_recursive(srcApp, dstApp)
-//     For each directory:   root_mkdir_as_root(dstSubdir)
-//     For each file:        root_creat_sized_as_root(dstFile, 0644, size)
-//                           creates a root-owned file large enough for
-//                           vfs_overwritefile(dstFile, srcFile) -- kernel
-//                           VFS writes the content bypassing DAC.
+//  3. Copy the .app bundle using plain NSFileManager (no VFS, no RemoteCall).
+//     VFS overwrite is intentionally avoided here: it requires pre-existing
+//     root-owned files of the correct size and the KRW socket can expire
+//     during large installs.
 //
-//  4. Register with LSApplicationWorkspace from the real
-//     /var/containers/Bundle/Application/ path so SpringBoard uses the
-//     standard install location.
-//
-//  Fallback: if launchd RemoteCall init fails (first boot, timing issue)
-//  the app is staged to /var/mobile/Library/ctrl_staging/<UUID>/ which is
-//  owned by mobile and requires no root to write.
+//  4. Register with LSApplicationWorkspace from whichever path succeeded.
 //
 
 #import <Foundation/Foundation.h>
@@ -39,28 +33,19 @@
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
 
-#define CTRL_STAGING_DIR  @"/var/mobile/Library/ctrl_staging"
+#define CTRL_STAGING_DIR     @"/var/mobile/Library/ctrl_staging"
+#define CTRL_CANONICAL_BASE  @"/var/containers/Bundle/Application"
 
-// ---- Recursive bundle copy ----
-// useRootRC=YES: create dirs/files via launchd RemoteCall, fill via VFS.
-// useRootRC=NO : plain NSFileManager (staging path only, no root needed).
+// ---- Recursive bundle copy using NSFileManager (no root required) ----
 
-static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir, BOOL useRootRC) {
+static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir) {
     NSFileManager *fm = [NSFileManager defaultManager];
 
-    // Create the destination directory
-    if (useRootRC) {
-        if (root_mkdir_as_root(dstDir.UTF8String) != 0) {
-            NSLog(@"[controller] root_mkdir_as_root failed: %@", dstDir);
-            return -10;
-        }
-    } else {
-        NSError *err = nil;
-        if (![fm createDirectoryAtPath:dstDir withIntermediateDirectories:YES
-                attributes:nil error:&err]) {
-            NSLog(@"[controller] mkdir failed %@: %@", dstDir, err);
-            return -11;
-        }
+    NSError *mkErr = nil;
+    if (![fm createDirectoryAtPath:dstDir withIntermediateDirectories:YES
+             attributes:nil error:&mkErr]) {
+        NSLog(@"[controller] mkdir failed %@: %@", dstDir, mkErr);
+        return -11;
     }
 
     NSError *listErr = nil;
@@ -77,44 +62,13 @@ static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir, BOOL useRoo
         [fm fileExistsAtPath:srcItem isDirectory:&isDir];
 
         if (isDir) {
-            int r = copy_bundle_recursive(srcItem, dstItem, useRootRC);
+            int r = copy_bundle_recursive(srcItem, dstItem);
             if (r != 0) return r;
         } else {
-            if (useRootRC) {
-                // Create the destination file with root ownership via launchd RC.
-                // vfs_overwritefile cannot create or grow files: it opens the target
-                // read-only and mmaps the existing size. Pre-size the root-owned
-                // target to match the source before filling it via VFS.
-                NSError *attrErr = nil;
-                NSDictionary *attrs = [fm attributesOfItemAtPath:srcItem error:&attrErr];
-                if (!attrs) {
-                    NSLog(@"[controller] attributesOfItemAtPath failed %@: %@", srcItem, attrErr);
-                    return -14;
-                }
-                off_t srcSize = (off_t)[attrs fileSize];
-                int cr = root_creat_sized_as_root(dstItem.UTF8String, 0644, srcSize);
-                if (cr != 0) {
-                    NSLog(@"[controller] root_creat_sized_as_root failed: %@ size=%lld (err=%d)",
-                          dstItem, (long long)srcSize, cr);
-                    return cr;
-                }
-                // Kernel VFS copy — bypasses Unix DAC regardless of ownership.
-                int r = vfs_overwritefile(dstItem.UTF8String, srcItem.UTF8String);
-                if (r != 0) {
-                    NSLog(@"[controller] vfs_overwritefile failed %@ -> %@: %d", srcItem, dstItem, r);
-                    return r;
-                }
-            } else {
-                // Staging path — directory is mobile-writable; plain NSFileManager copy
-                // is correct and sufficient here.  Do NOT call vfs_overwritefile:
-                //   1. Target files don't pre-exist => open(O_RDONLY) always returns ENOENT.
-                //   2. patchentryprot uses ds_kwrite64 which needs live KRW; KRW can expire
-                //      after ~5 minutes during a large IPA install (observed in session log).
-                NSError *cpErr = nil;
-                if (![fm copyItemAtPath:srcItem toPath:dstItem error:&cpErr]) {
-                    NSLog(@"[controller] copyItem failed %@ -> %@: %@", srcItem, dstItem, cpErr);
-                    return -13;
-                }
+            NSError *cpErr = nil;
+            if (![fm copyItemAtPath:srcItem toPath:dstItem error:&cpErr]) {
+                NSLog(@"[controller] copyItem failed %@ -> %@: %@", srcItem, dstItem, cpErr);
+                return -13;
             }
         }
     }
@@ -146,63 +100,53 @@ int install_app_bundle(const char *appBundlePath) {
     NSString *srcPath = [NSString stringWithUTF8String:appBundlePath];
     NSString *appName = [srcPath lastPathComponent];
     NSString *destUUID = [[NSUUID UUID] UUIDString];
+    NSFileManager *fm = [NSFileManager defaultManager];
 
-    // Try the canonical installation path first, using launchd's root context.
-    BOOL useRealPath = NO;
+    // --- Step 1: pick installation destination ---
+    // Try the canonical app container path first.  After sbx_escape() the
+    // sandbox extensions may permit this mkdir even though we are uid=501.
+    // We do NOT call root_init_launchd_rc() — it kernel-panics on A18 arm64e
+    // by crashing launchd (PID 1), taking down the whole device.
+
     NSString *destDir, *destApp;
+    BOOL useCanonical = NO;
 
-    int rcErr = root_init_launchd_rc();
-    if (rcErr == 0 && root_launchd_rc_ready()) {
-        // Primary: /var/containers/Bundle/Application/<UUID>/
-        destDir = [@"/var/containers/Bundle/Application"
-                     stringByAppendingPathComponent:destUUID];
-        destApp = [destDir stringByAppendingPathComponent:appName];
-
-        // Pre-create the container directory as root.
-        if (root_mkdir_as_root(destDir.UTF8String) == 0) {
-            useRealPath = YES;
-            NSLog(@"[controller] Installing to canonical path: %@", destDir);
-        } else {
-            NSLog(@"[controller] root_mkdir_as_root(%@) failed — falling back to staging",
-                  destDir);
-        }
+    NSString *canonDir = [CTRL_CANONICAL_BASE stringByAppendingPathComponent:destUUID];
+    NSError *canonErr = nil;
+    if ([fm createDirectoryAtPath:canonDir withIntermediateDirectories:YES
+            attributes:nil error:&canonErr]) {
+        destDir  = canonDir;
+        destApp  = [destDir stringByAppendingPathComponent:appName];
+        useCanonical = YES;
+        NSLog(@"[controller] Installing to canonical path: %@", destDir);
     } else {
-        NSLog(@"[controller] launchd RemoteCall unavailable (err=%d) — using staging path", rcErr);
-    }
-
-    if (!useRealPath) {
-        // Fallback: /var/mobile/Library/ctrl_staging/<UUID>/ (no root needed)
-        NSString *stagingBase = CTRL_STAGING_DIR;
-        destDir = [stagingBase stringByAppendingPathComponent:destUUID];
+        NSLog(@"[controller] canonical mkdir failed (%@) — using staging path",
+              canonErr.localizedDescription);
+        destDir = [CTRL_STAGING_DIR stringByAppendingPathComponent:destUUID];
         destApp = [destDir stringByAppendingPathComponent:appName];
-
-        NSFileManager *fm = [NSFileManager defaultManager];
-        NSError *err = nil;
-        if (![fm createDirectoryAtPath:stagingBase
-              withIntermediateDirectories:YES attributes:nil error:&err]) {
-            NSLog(@"[controller] Failed to create staging base: %@", err);
-        }
+        [fm createDirectoryAtPath:CTRL_STAGING_DIR
+           withIntermediateDirectories:YES attributes:nil error:nil];
     }
 
-    // Recursively copy the .app bundle.
-    int copyErr = copy_bundle_recursive(srcPath, destApp, useRealPath);
+    // --- Step 2: copy the .app bundle ---
+    int copyErr = copy_bundle_recursive(srcPath, destApp);
     if (copyErr != 0) {
         NSLog(@"[controller] copy_bundle_recursive failed: %d", copyErr);
-        if (useRealPath) {
-            // Retry via staging fallback
-            NSString *stagingBase = CTRL_STAGING_DIR;
-            destDir = [stagingBase stringByAppendingPathComponent:destUUID];
+
+        if (useCanonical) {
+            // Retry to staging
+            NSLog(@"[controller] retrying to staging path");
+            destDir = [CTRL_STAGING_DIR stringByAppendingPathComponent:destUUID];
             destApp = [destDir stringByAppendingPathComponent:appName];
-            NSError *err = nil;
-            [[NSFileManager defaultManager]
-                createDirectoryAtPath:stagingBase withIntermediateDirectories:YES
-                attributes:nil error:&err];
-            copyErr = copy_bundle_recursive(srcPath, destApp, NO);
+            [fm createDirectoryAtPath:CTRL_STAGING_DIR
+               withIntermediateDirectories:YES attributes:nil error:nil];
+            copyErr = copy_bundle_recursive(srcPath, destApp);
             if (copyErr != 0) {
-                NSLog(@"[controller] Staging fallback copy also failed: %d", copyErr);
+                NSLog(@"[controller] staging fallback copy also failed: %d", copyErr);
                 return copyErr;
             }
-            NSLog(@"[controller] Retried via staging: %@", destApp);
+            useCanonical = NO;
+            NSLog(@"[controller] retried via staging: %@", destApp);
         } else {
             return copyErr;
         }
@@ -210,21 +154,23 @@ int install_app_bundle(const char *appBundlePath) {
 
     fix_permissions_recursive(destApp);
 
-    // Read metadata from Info.plist.
+    // --- Step 3: read bundle metadata ---
     NSString *infoPlistPath = [destApp stringByAppendingPathComponent:@"Info.plist"];
-    NSDictionary *info  = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
-    NSString *bundleID  = info[@"CFBundleIdentifier"] ?: @"unknown";
-    NSString *bundleName= info[@"CFBundleDisplayName"]
-                       ?: info[@"CFBundleName"]
-                       ?: bundleID;
-    NSString *version   = info[@"CFBundleShortVersionString"] ?: @"1.0";
+    NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
+    NSString *bundleID   = info[@"CFBundleIdentifier"] ?: @"unknown";
+    NSString *bundleName = info[@"CFBundleDisplayName"]
+                        ?: info[@"CFBundleName"]
+                        ?: bundleID;
+    NSString *version    = info[@"CFBundleShortVersionString"] ?: @"1.0";
+    NSString *executable = info[@"CFBundleExecutable"] ?: bundleName;
+    NSString *minOS      = info[@"MinimumOSVersion"]   ?: @"17.0";
 
-    // Register with LSApplicationWorkspace.
+    NSLog(@"[controller] bundle: %@ (%@) v%@ exec=%@ path=%@",
+          bundleName, bundleID, version, executable, destApp);
+
+    // --- Step 4: register with LSApplicationWorkspace ---
     Class workspace = NSClassFromString(@"LSApplicationWorkspace");
     id ws = [workspace performSelector:@selector(defaultWorkspace)];
-
-    NSString *executable = info[@"CFBundleExecutable"] ?: bundleName;
-    NSString *minOS      = info[@"MinimumOSVersion"]  ?: @"17.0";
 
     NSDictionary *appDict = @{
         @"Path":                destApp,
@@ -241,6 +187,7 @@ int install_app_bundle(const char *appBundlePath) {
     };
 
     BOOL registered = NO;
+
     SEL regSel = NSSelectorFromString(@"registerApplicationDictionary:");
     if ([ws respondsToSelector:regSel]) {
         registered = ((BOOL (*)(id, SEL, id))objc_msgSend)(ws, regSel, appDict);
@@ -257,7 +204,7 @@ int install_app_bundle(const char *appBundlePath) {
         }
     }
 
-    // Notify observers that an app was installed (triggers SpringBoard icon update)
+    // Notify SpringBoard of the new app
     if (registered) {
         SEL notifySel = NSSelectorFromString(@"_sendApplicationInstalledNotification:");
         if ([ws respondsToSelector:notifySel]) {
@@ -266,12 +213,14 @@ int install_app_bundle(const char *appBundlePath) {
         }
     }
 
+    // --- Step 5: persist install record ---
     NSMutableArray *installed = [[NSUserDefaults.standardUserDefaults
         stringArrayForKey:@"ctrl_installed_apps"] mutableCopy] ?: [NSMutableArray new];
     if (![installed containsObject:bundleID]) [installed addObject:bundleID];
     [NSUserDefaults.standardUserDefaults setObject:installed forKey:@"ctrl_installed_apps"];
 
-    NSLog(@"[controller] Installed %@ (%@) -> %@", bundleName, bundleID, destApp);
+    NSLog(@"[controller] Installed %@ (%@) -> %@ (registered=%@)",
+          bundleName, bundleID, destApp, registered ? @"YES" : @"NO");
     return registered ? 0 : -4;
 }
 
@@ -288,7 +237,7 @@ int uninstall_app(const char *bundleID) {
         [installed removeObject:bid];
         [NSUserDefaults.standardUserDefaults setObject:installed forKey:@"ctrl_installed_apps"];
 
-        // Clean up any ctrl_staging leftovers for this bundle.
+        // Clean up staging leftovers
         NSFileManager *fm = [NSFileManager defaultManager];
         NSArray *dirs = [fm contentsOfDirectoryAtPath:CTRL_STAGING_DIR error:nil] ?: @[];
         for (NSString *d in dirs) {
@@ -305,4 +254,3 @@ int uninstall_app(const char *bundleID) {
     }
     return result ? 0 : -1;
 }
-
