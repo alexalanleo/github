@@ -168,7 +168,7 @@
                   Label("Root Toolbox", systemImage: "wrench.and.screwdriver.fill")
                       .font(.headline)
                       .foregroundColor(.white)
-                  Text("Safe examples that use root file operations and VFS access.")
+                  Text("Kernel-powered tools — requires exploit to be active.")
                       .font(.caption)
                       .foregroundColor(.gray)
               }
@@ -177,18 +177,18 @@
 
               HStack(spacing: 12) {
                   ActionButton(
-                      icon: "questionmark.circle.fill",
-                      label: "Ideas",
-                      color: .purple,
+                      icon: "arrow.clockwise.circle.fill",
+                      label: "Respring",
+                      color: .red,
                       enabled: mgr.dsready
-                  ) { mgr.logRootCapabilities() }
+                  ) { mgr.respringDevice() }
 
                   ActionButton(
-                      icon: "doc.badge.plus",
-                      label: "Proof File",
-                      color: .green,
-                      enabled: mgr.dsready && mgr.vfsready
-                  ) { mgr.createRootProofFile() }
+                      icon: "photo.stack.fill",
+                      label: "Clear Icon Cache",
+                      color: .orange,
+                      enabled: mgr.dsready
+                  ) { mgr.clearIconCache() }
               }
 
               HStack(spacing: 12) {
@@ -202,9 +202,25 @@
                   ActionButton(
                       icon: "iphone",
                       label: "iOS Info",
-                      color: .orange,
+                      color: .teal,
                       enabled: mgr.vfsready
                   ) { mgr.readSystemVersionWithRoot() }
+              }
+
+              HStack(spacing: 12) {
+                  ActionButton(
+                      icon: "cpu.fill",
+                      label: "KRW Info",
+                      color: .cyan,
+                      enabled: mgr.dsready
+                  ) { mgr.showKRWInfo() }
+
+                  ActionButton(
+                      icon: "doc.badge.checkmark.fill",
+                      label: "Proof File",
+                      color: .green,
+                      enabled: mgr.dsready && mgr.vfsready
+                  ) { mgr.createRootProofFile() }
               }
           }
           .padding(18)
