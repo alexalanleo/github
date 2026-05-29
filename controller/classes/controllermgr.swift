@@ -7,6 +7,15 @@ import Combine
 import Foundation
 import Darwin
 import UIKit
+import CoreLocation
+
+struct ToolResult: Identifiable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let body: String
+    let ok: Bool
+}
 
 final class controllermgr: ObservableObject {
     static let shared = controllermgr()
@@ -36,6 +45,14 @@ final class controllermgr: ObservableObject {
     @Published var sbxattempted: Bool = false
     @Published var sbxfailed: Bool = false
     @Published var sbxrunning: Bool = false
+
+    // MARK: - Tool result (drives result sheet in ToolsView)
+    @Published var toolResult: ToolResult? = nil
+
+    // MARK: - Location spoof state
+    @Published var locationSpoofActive: Bool = false
+    @Published var spoofedLat: Double = 37.3346
+    @Published var spoofedLon: Double = -122.0090
 
     private init() {}
 
@@ -631,19 +648,21 @@ final class controllermgr: ObservableObject {
         globallogger.log("[ROOT/TOOLS] Listing \(path)...")
         DispatchQueue.global(qos: .userInitiated).async {
             guard let entries = self.vfslistdir(path: path) else {
-                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Could not list \(path)") }
+                DispatchQueue.main.async {
+                    globallogger.log("[ROOT/TOOLS] Could not list \(path)")
+                    self.emitResult(title: "List Apps", body: "VFS could not open app container directory.", ok: false, icon: "folder.fill")
+                }
                 return
             }
-
-            let dirs = entries.filter { $0.isDir }.prefix(limit)
+            let dirs = entries.filter { $0.isDir }
+            let shown = dirs.prefix(limit)
             DispatchQueue.main.async {
                 globallogger.log("[ROOT/TOOLS] Found \(entries.count) entries in app container directory")
-                for entry in dirs {
-                    globallogger.log("[ROOT/TOOLS] • \(entry.name)/")
-                }
-                if entries.count > limit {
-                    globallogger.log("[ROOT/TOOLS] ...and \(entries.count - limit) more entries")
-                }
+                for entry in shown { globallogger.log("[ROOT/TOOLS] • \(entry.name)/") }
+                if entries.count > limit { globallogger.log("[ROOT/TOOLS] ...and \(entries.count - limit) more entries") }
+                let preview = shown.map { "\($0.name)/" }.joined(separator: "\n")
+                let suffix = dirs.count > limit ? "\n…+\(dirs.count - limit) more" : ""
+                self.emitResult(title: "App Containers (\(dirs.count))", body: preview + suffix, ok: true, icon: "folder.fill")
             }
         }
     }
@@ -654,15 +673,33 @@ final class controllermgr: ObservableObject {
         DispatchQueue.global(qos: .userInitiated).async {
             guard let data = self.vfsread(path: path, maxSize: 64 * 1024),
                   let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] else {
-                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Could not read system version plist") }
+                DispatchQueue.main.async {
+                    globallogger.log("[ROOT/TOOLS] Could not read system version plist")
+                    self.emitResult(title: "iOS Info", body: "VFS could not read SystemVersion.plist", ok: false, icon: "iphone")
+                }
                 return
             }
-
             let version = plist["ProductVersion"] as? String ?? "?"
             let build = plist["ProductBuildVersion"] as? String ?? "?"
+            let name = plist["ProductName"] as? String ?? "iOS"
+            let kbase = hex(ds_get_kernel_base())
             DispatchQueue.main.async {
-                globallogger.log("[ROOT/TOOLS] iOS \(version) (build \(build))")
+                globallogger.log("[ROOT/TOOLS] \(name) \(version) (build \(build))")
+                self.emitResult(
+                    title: "\(name) \(version)",
+                    body: "Build: \(build)\nkernel_base: \(kbase)\nkernel_slide: \(hex(ds_get_kernel_slide()))",
+                    ok: true,
+                    icon: "iphone"
+                )
             }
+        }
+    }
+
+    // MARK: - Tool result emission
+    func emitResult(title: String, body: String, ok: Bool = true, icon: String? = nil) {
+        let ic = icon ?? (ok ? "checkmark.circle.fill" : "xmark.circle.fill")
+        DispatchQueue.main.async {
+            self.toolResult = ToolResult(icon: ic, title: title, body: body, ok: ok)
         }
     }
 
@@ -676,16 +713,27 @@ final class controllermgr: ObservableObject {
         let pid = getpid()
         let uid = getuid()
         let ppid = getppid()
+        let bundle = Bundle.main.bundleIdentifier ?? "?"
         globallogger.log("[INFO] PID: \(pid) | UID: \(uid) | PPID: \(ppid)")
-        globallogger.log("[INFO] Bundle: \(Bundle.main.bundleIdentifier ?? "?")")
+        globallogger.log("[INFO] Bundle: \(bundle)")
         globallogger.log("[INFO] dsready=\(dsready) vfsready=\(vfsready) sbxready=\(sbxready)")
+        emitResult(
+            title: "Process Info",
+            body: "PID: \(pid)\nUID: \(uid)  PPID: \(ppid)\nBundle: \(bundle)\n\nKernel: \(dsready ? "✓" : "✗")  VFS: \(vfsready ? "✓" : "✗")  Sandbox: \(sbxready ? "✓" : "✗")",
+            ok: true,
+            icon: "person.badge.shield.checkmark.fill"
+        )
     }
 
     func checkAPFS() {
+        var lines: [String] = []
         for path in ["/", "/var", "/private/var", "/System"] {
             let result = isapfs(path)
-            globallogger.log("[APFS] \(path): \(result ? "APFS ✓" : "not APFS")")
+            let line = "\(path): \(result ? "APFS ✓" : "not APFS")"
+            lines.append(line)
+            globallogger.log("[APFS] \(line)")
         }
+        emitResult(title: "APFS Check", body: lines.joined(separator: "\n"), ok: true, icon: "externaldrive.fill")
     }
 
     func listVarMobile() {
@@ -693,15 +741,20 @@ final class controllermgr: ObservableObject {
         globallogger.log("[ROOT/TOOLS] Listing \(path)...")
         DispatchQueue.global(qos: .userInitiated).async {
             guard let entries = self.vfslistdir(path: path) else {
-                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Could not list \(path)") }
+                DispatchQueue.main.async {
+                    globallogger.log("[ROOT/TOOLS] Could not list \(path)")
+                    self.emitResult(title: "List /var/mobile", body: "VFS could not open \(path)", ok: false, icon: "folder.fill")
+                }
                 return
             }
+            let shown = entries.prefix(20)
             DispatchQueue.main.async {
                 globallogger.log("[ROOT/TOOLS] \(path): \(entries.count) entries")
-                for e in entries.prefix(30) {
-                    globallogger.log("[ROOT/TOOLS] • \(e.name)\(e.isDir ? "/" : "")")
-                }
+                for e in entries.prefix(30) { globallogger.log("[ROOT/TOOLS] • \(e.name)\(e.isDir ? "/" : "")") }
                 if entries.count > 30 { globallogger.log("[ROOT/TOOLS] ...and \(entries.count - 30) more") }
+                let preview = shown.map { "\($0.name)\($0.isDir ? "/" : "")" }.joined(separator: "\n")
+                let suffix = entries.count > 20 ? "\n…+\(entries.count - 20) more" : ""
+                self.emitResult(title: "/var/mobile (\(entries.count) items)", body: preview + suffix, ok: true, icon: "house.fill")
             }
         }
     }
@@ -711,14 +764,19 @@ final class controllermgr: ObservableObject {
         globallogger.log("[ROOT/TOOLS] Listing \(path)...")
         DispatchQueue.global(qos: .userInitiated).async {
             guard let entries = self.vfslistdir(path: path) else {
-                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Could not list \(path)") }
+                DispatchQueue.main.async {
+                    globallogger.log("[ROOT/TOOLS] Could not list \(path)")
+                    self.emitResult(title: "List /System/Library", body: "VFS could not open \(path)", ok: false, icon: "internaldrive.fill")
+                }
                 return
             }
+            let shown = entries.prefix(20)
             DispatchQueue.main.async {
                 globallogger.log("[ROOT/TOOLS] \(path): \(entries.count) entries")
-                for e in entries.prefix(30) {
-                    globallogger.log("[ROOT/TOOLS] • \(e.name)\(e.isDir ? "/" : "")")
-                }
+                for e in entries.prefix(30) { globallogger.log("[ROOT/TOOLS] • \(e.name)\(e.isDir ? "/" : "")") }
+                let preview = shown.map { "\($0.name)\($0.isDir ? "/" : "")" }.joined(separator: "\n")
+                let suffix = entries.count > 20 ? "\n…+\(entries.count - 20) more" : ""
+                self.emitResult(title: "/System/Library (\(entries.count) items)", body: preview + suffix, ok: true, icon: "internaldrive.fill")
             }
         }
     }
@@ -727,7 +785,10 @@ final class controllermgr: ObservableObject {
         globallogger.log("[ROOT/TOOLS] Creating test dir as root...")
         DispatchQueue.global(qos: .userInitiated).async {
             guard self.rootFileOpsReady() else {
-                DispatchQueue.main.async { globallogger.log("[ROOT/TOOLS] Root ops not ready") }
+                DispatchQueue.main.async {
+                    globallogger.log("[ROOT/TOOLS] Root ops not ready")
+                    self.emitResult(title: "Root mkdir", body: "launchd RemoteCall not ready — run exploit first.", ok: false, icon: "folder.badge.plus")
+                }
                 return
             }
             let path = "/var/mobile/ctrl_testdir"
@@ -735,8 +796,10 @@ final class controllermgr: ObservableObject {
             DispatchQueue.main.async {
                 if r == 0 {
                     globallogger.log("[OK] root_mkdir_as_root(\(path)) succeeded")
+                    self.emitResult(title: "Root mkdir OK", body: "Created:\n\(path)", ok: true, icon: "folder.badge.plus")
                 } else {
                     globallogger.log("[ROOT/TOOLS] root_mkdir_as_root failed: \(r)")
+                    self.emitResult(title: "Root mkdir Failed", body: "root_mkdir_as_root(\(path)) = \(r)\n(EEXIST=17 means already exists)", ok: r == -17, icon: "folder.badge.plus")
                 }
             }
         }
@@ -746,6 +809,12 @@ final class controllermgr: ObservableObject {
         globallogger.log("[ROOT/TOOLS] Re-running sandbox escape...")
         sbxEscape { success in
             globallogger.log(success ? "[OK] Sandbox re-escaped" : "[WARN] Sandbox re-escape failed")
+            self.emitResult(
+                title: success ? "Sandbox Re-Escaped" : "Re-Escape Failed",
+                body: success ? "Sandbox extensions re-patched successfully." : "sbxEscape() returned failure — may already be active.",
+                ok: success,
+                icon: "lock.open.fill"
+            )
         }
     }
 
@@ -753,7 +822,10 @@ final class controllermgr: ObservableObject {
         globallogger.log("[ROOT/TOOLS] Elevating sandbox...")
         DispatchQueue.global(qos: .userInitiated).async {
             sbx_elevate()
-            DispatchQueue.main.async { globallogger.log("[OK] sbx_elevate() called") }
+            DispatchQueue.main.async {
+                globallogger.log("[OK] sbx_elevate() called")
+                self.emitResult(title: "Sandbox Elevated", body: "sbx_elevate() completed.\nFull sandbox elevation applied.", ok: true, icon: "arrow.up.forward.circle.fill")
+            }
         }
     }
 
@@ -762,21 +834,126 @@ final class controllermgr: ObservableObject {
         globallogger.log("[SBX] dsattempted=\(dsattempted) dsfailed=\(dsfailed)")
         globallogger.log("[SBX] sbxattempted=\(sbxattempted) sbxfailed=\(sbxfailed)")
         globallogger.log("[SBX] vfsattempted=\(vfsattempted) vfsfailed=\(vfsfailed)")
+        emitResult(
+            title: "Sandbox Status",
+            body: "Kernel:  \(dsready ? "ready ✓" : (dsfailed ? "failed ✗" : "pending"))\nVFS:     \(vfsready ? "ready ✓" : (vfsfailed ? "failed ✗" : "pending"))\nSandbox: \(sbxready ? "ready ✓" : (sbxfailed ? "failed ✗" : "pending"))",
+            ok: dsready && sbxready,
+            icon: "checkmark.shield.fill"
+        )
     }
 
     func clearIconCache() {
         globallogger.log("[UTIL] Clearing icon cache...")
         DispatchQueue.global(qos: .userInitiated).async {
             LaraClearIconCache()
-            globallogger.log("[OK] Icon cache cleared")
+            DispatchQueue.main.async {
+                globallogger.log("[OK] Icon cache cleared")
+                self.emitResult(title: "Icon Cache Cleared", body: "SpringBoard icon cache wiped.\nIcons will regenerate on next respring.", ok: true, icon: "photo.stack.fill")
+            }
         }
     }
 
     func showKRWInfo() {
-        globallogger.log("[INFO] kernel_base=\(hex(ds_get_kernel_base()))")
-        globallogger.log("[INFO] kernel_slide=\(hex(ds_get_kernel_slide()))")
+        let kbase = hex(ds_get_kernel_base())
+        let kslide = hex(ds_get_kernel_slide())
+        globallogger.log("[INFO] kernel_base=\(kbase)")
+        globallogger.log("[INFO] kernel_slide=\(kslide)")
         globallogger.log("[INFO] control_socket=\(control_socket)")
         globallogger.log("[INFO] rw_socket=\(rw_socket)")
+        emitResult(
+            title: "KRW Info",
+            body: "kernel_base:    \(kbase)\nkernel_slide:   \(kslide)\ncontrol_socket: \(control_socket)\nrw_socket:      \(rw_socket)",
+            ok: true,
+            icon: "cpu.fill"
+        )
+    }
+
+    // MARK: - Location Spoofer
+    func startLocationSpoof(lat: Double, lon: Double) {
+        globallogger.log("[SPOOF] Starting location spoof: \(lat), \(lon)")
+        DispatchQueue.global(qos: .userInitiated).async {
+            var method1ok = false
+            var method2ok = false
+
+            // Method 1: Private CLLocationManager class method via ObjC runtime
+            if let cls = NSClassFromString("CLLocationManager") {
+                let sel = NSSelectorFromString("setSimulatedLocation:")
+                if (cls as AnyObject).responds(to: sel) {
+                    let loc = CLLocation(latitude: lat, longitude: lon)
+                    _ = (cls as AnyObject).perform(sel, with: loc)
+                    method1ok = true
+                    DispatchQueue.main.async { globallogger.log("[SPOOF] CLLocationManager.setSimulatedLocation: OK") }
+                }
+            }
+
+            // Method 2: Write locationd override plist as root + SIGHUP locationd
+            let plist: [String: Any] = [
+                "SimulatedLocationEnabled": true,
+                "SimulatedLatitude": lat,
+                "SimulatedLongitude": lon
+            ]
+            if let data = try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0) {
+                let dir = "/var/db/locationd"
+                let overridePath = "\(dir)/OverrideModes.plist"
+                _ = root_mkdir_as_root(dir)
+                let created = root_creat_sized_as_root(overridePath, 0o644, off_t(data.count))
+                if created == 0 {
+                    method2ok = self.vfsoverwritewithdata(target: overridePath, data: data)
+                    DispatchQueue.main.async { globallogger.log("[SPOOF] Wrote \(overridePath): \(method2ok)") }
+                } else {
+                    DispatchQueue.main.async { globallogger.log("[SPOOF] root_creat_sized_as_root failed: \(created)") }
+                }
+            }
+
+            // SIGHUP locationd to reload config
+            let procs = self.getProcessList()
+            if let locationdProc = procs.first(where: { $0.name == "locationd" }) {
+                kill(locationdProc.pid, SIGHUP)
+                DispatchQueue.main.async { globallogger.log("[SPOOF] SIGHUP sent to locationd (pid \(locationdProc.pid))") }
+            }
+
+            let ok = method1ok || method2ok
+            DispatchQueue.main.async {
+                self.locationSpoofActive = ok
+                self.spoofedLat = lat
+                self.spoofedLon = lon
+                let fmt = { (v: Double) in String(format: "%.5f", v) }
+                self.emitResult(
+                    title: ok ? "Location Spoof Active" : "Spoof Attempted",
+                    body: "Lat: \(fmt(lat))\nLon: \(fmt(lon))\n\nPrivate API: \(method1ok ? "✓" : "✗")\nFile override: \(method2ok ? "✓" : "✗")",
+                    ok: ok,
+                    icon: "location.fill"
+                )
+            }
+        }
+    }
+
+    func stopLocationSpoof() {
+        globallogger.log("[SPOOF] Stopping location spoof...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Clear private API
+            if let cls = NSClassFromString("CLLocationManager") {
+                let sel = NSSelectorFromString("setSimulatedLocation:")
+                if (cls as AnyObject).responds(to: sel) {
+                    _ = (cls as AnyObject).perform(sel, with: nil)
+                }
+            }
+            // Zero out the override plist
+            if let emptyData = try? PropertyListSerialization.data(fromPropertyList: ["SimulatedLocationEnabled": false] as [String: Any], format: .xml, options: 0) {
+                _ = self.vfsoverwritewithdata(target: "/var/db/locationd/OverrideModes.plist", data: emptyData)
+            }
+            // SIGHUP locationd
+            let procs = self.getProcessList()
+            if let locationdProc = procs.first(where: { $0.name == "locationd" }) {
+                kill(locationdProc.pid, SIGHUP)
+                DispatchQueue.main.async { globallogger.log("[SPOOF] SIGHUP sent to locationd (pid \(locationdProc.pid))") }
+            }
+            DispatchQueue.main.async {
+                self.locationSpoofActive = false
+                globallogger.log("[SPOOF] Location spoof stopped")
+                self.emitResult(title: "Spoof Stopped", body: "Location restored to real GPS.\nlocationd signalled to reload.", ok: true, icon: "location.slash.fill")
+            }
+        }
     }
 }
 

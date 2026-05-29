@@ -14,6 +14,7 @@ CC0001000000000000000004 /* IPAInstallerView.swift in Sources */ = {isa = PBXBui
 CC0001000000000000000005 /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000005 /* LogsView.swift */; };
 CC0001000000000000000006 /* RootManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000006 /* RootManagerView.swift */; };
 CC0001000000000000000076 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000076 /* ToolsView.swift */; };
+CC0001000000000000000077 /* LocationSpooferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000077 /* LocationSpooferView.swift */; };
 CC0001000000000000000007 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000007 /* SettingsView.swift */; };
 CC0001000000000000000008 /* controllermgr.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000008 /* controllermgr.swift */; };
 CC0001000000000000000009 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000009 /* Logger.swift */; };
@@ -99,6 +100,7 @@ CC0000000000000000000004 /* IPAInstallerView.swift */ = {isa = PBXFileReference;
 CC0000000000000000000005 /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
 CC0000000000000000000006 /* RootManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootManagerView.swift; sourceTree = "<group>"; };
 CC0000000000000000000076 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+CC0000000000000000000077 /* LocationSpooferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSpooferView.swift; sourceTree = "<group>"; };
 CC0000000000000000000007 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 CC0000000000000000000008 /* controllermgr.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = controllermgr.swift; sourceTree = "<group>"; };
 CC0000000000000000000009 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
@@ -266,6 +268,7 @@ CC0000000000000000000004 /* IPAInstallerView.swift */,
 CC0000000000000000000005 /* LogsView.swift */,
 CC0000000000000000000006 /* RootManagerView.swift */,
 CC0000000000000000000076 /* ToolsView.swift */,
+CC0000000000000000000077 /* LocationSpooferView.swift */,
 CC0000000000000000000007 /* SettingsView.swift */,
 );
 path = views;
@@ -592,6 +595,7 @@ CC0001000000000000000004 /* IPAInstallerView.swift in Sources */,
 CC0001000000000000000005 /* LogsView.swift in Sources */,
 CC0001000000000000000006 /* RootManagerView.swift in Sources */,
 CC0001000000000000000076 /* ToolsView.swift in Sources */,
+CC0001000000000000000077 /* LocationSpooferView.swift in Sources */,
 CC0001000000000000000007 /* SettingsView.swift in Sources */,
 CC0001000000000000000008 /* controllermgr.swift in Sources */,
 CC0001000000000000000009 /* Logger.swift in Sources */,
