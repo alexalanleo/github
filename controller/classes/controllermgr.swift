@@ -667,6 +667,11 @@ final class controllermgr: ObservableObject {
     }
 
     // MARK: - Utilities
+    func respringDevice() {
+        globallogger.log("[UTIL] Triggering respring...")
+        respring()
+    }
+
     func clearIconCache() {
         globallogger.log("[UTIL] Clearing icon cache...")
         DispatchQueue.global(qos: .userInitiated).async {
