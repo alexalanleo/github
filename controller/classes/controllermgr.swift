@@ -535,7 +535,14 @@ final class controllermgr: ObservableObject {
                 globallogger.log("[IPA] Installing bundle: \(appBundle.lastPathComponent)")
                 let result = install_app_bundle(appBundle.path)
                 globallogger.log("[IPA] install_app_bundle() returned \(result)")
-                progress(1.0, result == 0 ? "Done!" : "Install failed")
+                if result == 0 {
+                    globallogger.log("[IPA] Clearing icon cache...")
+                    LaraClearIconCache()
+                    globallogger.log("[IPA] Icon cache cleared — respring to see the app")
+                    progress(1.0, "Done! Respring to see the app.")
+                } else {
+                    progress(1.0, "Install failed (code \(result))")
+                }
                 DispatchQueue.main.async { completion(result == 0, result == 0 ? nil : "install_app_bundle returned \(result)") }
             } catch {
                 globallogger.log("[IPA] Exception: \(error.localizedDescription)")
@@ -1007,3 +1014,4 @@ private func exploitSignalName(_ ret: Int32) -> String {
     default:       return "signal \(sig)"
     }
 }
+
