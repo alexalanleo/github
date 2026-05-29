@@ -886,7 +886,11 @@ final class controllermgr: ObservableObject {
                 }
             }
 
-            // Method 2: Write locationd override plist as root + SIGHUP locationd
+            // Method 2: Write locationd override plist from launchd's root context.
+            // This path must explicitly initialise/probe the RemoteCall channel;
+            // otherwise a fresh spoof attempt after exploit startup can fail with
+            // root_creat_sized_as_root/root_write_file_as_root == -1 even though
+            // sandbox escape and VFS are already ready.
             let plist: [String: Any] = [
                 "SimulatedLocationEnabled": true,
                 "SimulatedLatitude": lat,
@@ -895,13 +899,25 @@ final class controllermgr: ObservableObject {
             if let data = try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0) {
                 let dir = "/var/db/locationd"
                 let overridePath = "\(dir)/OverrideModes.plist"
-                _ = root_mkdir_as_root(dir)
-                let created = root_creat_sized_as_root(overridePath, 0o644, off_t(data.count))
-                if created == 0 {
-                    method2ok = self.vfsoverwritewithdata(target: overridePath, data: data)
-                    DispatchQueue.main.async { globallogger.log("[SPOOF] Wrote \(overridePath): \(method2ok)") }
+                if self.rootFileOpsReady() {
+                    let mkdirResult = root_mkdir_as_root(dir)
+                    if mkdirResult != 0 {
+                        DispatchQueue.main.async { globallogger.log("[SPOOF] root_mkdir_as_root failed for \(dir): \(mkdirResult)") }
+                    }
+
+                    let writeResult = data.withUnsafeBytes { rawBuffer -> Int32 in
+                        guard let base = rawBuffer.baseAddress else { return -1 }
+                        return root_write_file_as_root(overridePath, base, data.count, 0o644)
+                    }
+
+                    method2ok = (writeResult == 0)
+                    if method2ok {
+                        DispatchQueue.main.async { globallogger.log("[SPOOF] Wrote \(overridePath) as root") }
+                    } else {
+                        DispatchQueue.main.async { globallogger.log("[SPOOF] root_write_file_as_root failed: \(writeResult)") }
+                    }
                 } else {
-                    DispatchQueue.main.async { globallogger.log("[SPOOF] root_creat_sized_as_root failed: \(created)") }
+                    DispatchQueue.main.async { globallogger.log("[SPOOF] Root file ops unavailable; skipping locationd plist override") }
                 }
             }
 
