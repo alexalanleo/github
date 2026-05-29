@@ -287,7 +287,7 @@ private struct PPLSegmentCard: View {
                     Text("kernel_base = \(kbaseStr)").font(.system(.caption2, design: .monospaced)).foregroundColor(.gray)
                 }
                 DebugBtn(label: "Parse Kernel Mach-O", color: .purple, enabled: mgr.dsready, busy: busy, action: enumerate)
-                if !error.isEmpty { Text(error).font(.caption).foregroundColor(.red) }
+                if !errMsg.isEmpty { Text(errMsg).font(.caption).foregroundColor(.red) }
                 if !rows.isEmpty {
                     VStack(spacing: 4) {
                         HStack {
@@ -592,7 +592,7 @@ private struct PPLGadgetHunterCard: View {
     @State private var rows:   [GadgetRow] = []
     @State private var busy    = false
     @State private var status  = ""
-    @State private var error   = ""
+    @State private var errMsg  = ""
 
     var body: some View {
         DebugCard(title: "PPL Bypass Finder", icon: "flame.fill", color: .red) {
@@ -619,7 +619,7 @@ private struct PPLGadgetHunterCard: View {
                         .font(.caption2).foregroundColor(.gray)
 
                     VStack(spacing: 5) {
-                        ForEach(rows.prefix(30)) { row in
+                        ForEach(Array(rows.prefix(30))) { row in
                             GadgetRowView(row: row)
                         }
                     }
@@ -632,12 +632,12 @@ private struct PPLGadgetHunterCard: View {
     }
 
     private func hunt() {
-        busy = true; rows = []; status = ""; error = ""
+        busy = true; rows = []; status = ""; errMsg = ""
         DispatchQueue.global(qos: .userInitiated).async {
             var count: Int32 = 0
             guard let raw = ppl_find_write_gadgets_auto(&count), count > 0 else {
                 DispatchQueue.main.async {
-                    error = "__PPLTEXT not found or no gadgets — run exploit first"
+                    errMsg = "__PPLTEXT not found or no gadgets — run exploit first"
                     busy = false
                 }
                 return
