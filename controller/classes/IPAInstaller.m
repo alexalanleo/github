@@ -5,96 +5,36 @@
 //  Installation flow (A18 arm64e / iOS 18.7.1)
 //  -------------------------------------------
 //
-//  What DOES NOT work on A18 / iOS 18.7.1:
+//  What does NOT work:
+//    • selfroot via ucred write   — ucred is PPL-protected; writes are silently dropped.
+//    • launchd RemoteCall ops     — first RemoteArbCall PAC-faults in launchd → kernel panic.
+//    • registerApplicationDictionary: with staging path — LS rejects non-canonical paths.
 //
-//    selfroot via ucred write
-//      kauth_cred lives in PPL-protected zone memory.  DarkSword's setsockopt
-//      write path runs as normal kernel code and cannot write to PPL pages.
-//      All uid writes silently fail ("setsockopt failed (early_kwrite32bytes)").
+//  What works:
+//    • Copy .app to /var/mobile/Library/ctrl_staging/ (plain NSFileManager, UID=501)
+//    • Hand the staging path to installd; installd (uid=0) moves it to the canonical
+//      container, registers with LaunchServices, and notifies SpringBoard.
 //
-//    launchd RemoteCall (root_*_as_root helpers)
-//      The TRO pointer swap that sets up RemoteCall succeeds, but the FIRST
-//      actual RemoteArbCall (e.g. mkdir in launchd's thread) triggers a PAC
-//      authentication fault inside launchd → launchd crashes → kernel panic
-//      → device reboots.  DO NOT call root_mkdir_as_root() or any
-//      root_*_as_root() helper from this file.
+//  installd handoff — three symbol searches in priority order:
+//    1. MIInstaller +installPackageAtPath:options:completion:   (iOS 17+, preferred)
+//    2. MobileInstallationInstall via RTLD_DEFAULT              (shared-cache symbol)
+//    3. MobileInstallationInstall via dlopen handle
 //
-//  What WORKS:
-//
-//    MobileInstallationInstall()
-//      installd already runs as root.  It accepts an .app bundle (or .ipa)
-//      path, verifies code signature, moves the bundle to the canonical
-//      container path, and registers with LaunchServices — all without any
-//      privilege escalation on our side.
-//
-//      After sbx_escape() our process holds launchd's full entitlement set,
-//      which includes com.apple.private.MobileInstallation.allowSelfManagement.
-//      installd validates the calling task's entitlements (not its UID), so
-//      with launchd entitlements our XPC connection is accepted.
-//
-//      The extracted .app bundle lives in /var/mobile/Library/ctrl_staging/
-//      which installd (uid=0) can read without restriction.
-//
-//    Fallback: registerApplicationDictionary: (staging path)
-//      If MobileInstallationInstall is unavailable, we fall back to the direct
-//      LSApplicationWorkspace API with the staging path.  This is less reliable
-//      on iOS 18 but succeeds if the launchd entitlement set includes the
-//      MobileInstallation entitlement.
+//  Auth: sbx_escape() copies launchd's full entitlement set into our task, including
+//  com.apple.private.MobileInstallation.allowSelfManagement, so installd's XPC
+//  authorization check passes for UID=501.
 //
 
 #import <Foundation/Foundation.h>
 #include "darksword.h"
-#include "vfs.h"
-#import <UIKit/UIKit.h>
 #import <objc/message.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <errno.h>
 #include <dlfcn.h>
 #include <notify.h>
 
 #define CTRL_STAGING_DIR @"/var/mobile/Library/ctrl_staging"
 
 // ─────────────────────────────────────────────────────────────────
-//  MobileInstallation private API
-// ─────────────────────────────────────────────────────────────────
-
-typedef void (*MIProgressCallback)(CFDictionaryRef info, void *userInfo);
-typedef int  (*MobileInstallationInstall_t)(CFStringRef   packagePath,
-                                             CFDictionaryRef options,
-                                             MIProgressCallback callback,
-                                             void          *userInfo);
-
-static void mi_progress(CFDictionaryRef info, void *userInfo) {
-    if (!info) return;
-    CFStringRef status = CFDictionaryGetValue(info, CFSTR("Status"));
-    CFNumberRef pct    = CFDictionaryGetValue(info, CFSTR("PercentComplete"));
-    double d = 0;
-    if (pct) CFNumberGetValue(pct, kCFNumberDoubleType, &d);
-    if (status) {
-        char buf[256] = {0};
-        CFStringGetCString(status, buf, sizeof(buf), kCFStringEncodingUTF8);
-        printf("[ipa/installd] %s %.0f%%\n", buf, d);
-    }
-}
-
-static MobileInstallationInstall_t load_mi_install(void) {
-    static MobileInstallationInstall_t fn = NULL;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        void *fwk = dlopen(
-            "/System/Library/PrivateFrameworks/"
-            "MobileInstallation.framework/MobileInstallation",
-            RTLD_LAZY | RTLD_GLOBAL);
-        if (fwk) fn = dlsym(fwk, "MobileInstallationInstall");
-        if (!fn) printf("[ipa] MobileInstallationInstall not found (%s)\n",
-                        fwk ? "symbol missing" : dlerror());
-    });
-    return fn;
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  Recursive staging copy (plain NSFileManager, UID=501 writable)
+//  Recursive bundle copy — plain NSFileManager (UID=501 writable)
 // ─────────────────────────────────────────────────────────────────
 
 static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir) {
@@ -132,7 +72,7 @@ static int copy_bundle_recursive(NSString *srcDir, NSString *dstDir) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  MCM container metadata plist (staging path only)
+//  MCM container metadata plist
 // ─────────────────────────────────────────────────────────────────
 
 static void write_container_metadata(NSString *containerDir,
@@ -147,13 +87,131 @@ static void write_container_metadata(NSString *containerDir,
     };
     NSError *e = nil;
     NSData *d = [NSPropertyListSerialization dataWithPropertyList:meta
-                                             format:NSPropertyListXMLFormat_v1_0
-                                             options:0 error:&e];
+                 format:NSPropertyListXMLFormat_v1_0 options:0 error:&e];
     if (!d) { printf("[ipa/meta] plist error: %s\n", e.localizedDescription.UTF8String); return; }
-    if ([d writeToFile:path atomically:YES])
-        printf("[ipa/meta] wrote MCM metadata: %s\n", path.UTF8String);
-    else
+    if (![d writeToFile:path atomically:YES])
         printf("[ipa/meta] write failed: %s\n", path.UTF8String);
+    else
+        printf("[ipa/meta] wrote MCM metadata: %s\n", path.UTF8String);
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  MobileInstallation symbol search
+//  iOS 18 puts framework symbols only in the shared cache — they are
+//  not re-exported via the dylib's own symbol table, so dlsym(handle)
+//  returns NULL.  RTLD_DEFAULT searches all loaded images (= shared
+//  cache) and finds them.  Opening with RTLD_GLOBAL first ensures the
+//  images are mapped.
+// ─────────────────────────────────────────────────────────────────
+
+typedef void (*MIProgressFn)(CFDictionaryRef info, void *ctx);
+typedef int  (*MobileInstallationInstall_t)(CFStringRef path,
+                                             CFDictionaryRef opts,
+                                             MIProgressFn callback,
+                                             void *ctx);
+
+static void mi_c_progress(CFDictionaryRef info, void *ctx) {
+    if (!info) return;
+    CFStringRef status = CFDictionaryGetValue(info, CFSTR("Status"));
+    CFNumberRef pct    = CFDictionaryGetValue(info, CFSTR("PercentComplete"));
+    double d = 0;
+    if (pct) CFNumberGetValue(pct, kCFNumberDoubleType, &d);
+    char buf[256] = {0};
+    if (status) CFStringGetCString(status, buf, sizeof(buf), kCFStringEncodingUTF8);
+    printf("[ipa/installd] %s %.0f%%\n", buf, d);
+}
+
+static MobileInstallationInstall_t resolve_mi_install(void) {
+    // Ensure the framework is mapped so RTLD_DEFAULT can find its symbols.
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        dlopen("/System/Library/PrivateFrameworks/"
+               "MobileInstallation.framework/MobileInstallation",
+               RTLD_LAZY | RTLD_GLOBAL);
+    });
+    // Shared-cache lookup (preferred on iOS 17+).
+    MobileInstallationInstall_t fn =
+        (MobileInstallationInstall_t)dlsym(RTLD_DEFAULT, "MobileInstallationInstall");
+    if (fn) { printf("[ipa] MobileInstallationInstall found via RTLD_DEFAULT\n"); return fn; }
+    // Per-handle lookup (fallback).
+    void *h = dlopen("/System/Library/PrivateFrameworks/"
+                     "MobileInstallation.framework/MobileInstallation", RTLD_LAZY);
+    if (h) fn = (MobileInstallationInstall_t)dlsym(h, "MobileInstallationInstall");
+    if (fn) { printf("[ipa] MobileInstallationInstall found via dlopen handle\n"); return fn; }
+    printf("[ipa] MobileInstallationInstall not found\n");
+    return NULL;
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  MIInstaller ObjC class (iOS 17+)
+//  +installPackageAtPath:options:completion:
+//  Returns YES if the class+selector exist; fills *outErr on failure.
+// ─────────────────────────────────────────────────────────────────
+
+static BOOL try_mi_installer(NSString *bundlePath, NSDictionary *opts,
+                              NSError **outErr) {
+    // The framework must be loaded first (done by resolve_mi_install above).
+    Class cls = NSClassFromString(@"MIInstaller");
+    if (!cls) {
+        // Some iOS 18 builds renamed it.
+        cls = NSClassFromString(@"MIPackageInstaller");
+    }
+    if (!cls) {
+        printf("[ipa] MIInstaller class not found\n");
+        return NO;
+    }
+
+    SEL sel = NSSelectorFromString(@"installPackageAtPath:options:completion:");
+    if (![cls respondsToSelector:sel]) {
+        printf("[ipa] MIInstaller does not respond to installPackageAtPath:options:completion:\n");
+        // Try the URL variant.
+        SEL urlSel = NSSelectorFromString(@"installPackageAtURL:options:completion:");
+        if (![cls respondsToSelector:urlSel]) {
+            printf("[ipa] MIInstaller: no suitable install selector found\n");
+            return NO;
+        }
+        sel = urlSel;
+    }
+
+    printf("[ipa] calling %s %s\n", NSStringFromClass(cls).UTF8String,
+           NSStringFromSelector(sel).UTF8String);
+
+    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+    __block NSError *blockErr = nil;
+
+    // Block type: ^(NSError *)
+    void (^completion)(NSError *) = ^(NSError *err) {
+        blockErr = err;
+        dispatch_semaphore_signal(sem);
+    };
+
+    // +installPackageAtPath:options:completion: or +installPackageAtURL:options:completion:
+    if (sel == NSSelectorFromString(@"installPackageAtURL:options:completion:")) {
+        NSURL *url = [NSURL fileURLWithPath:bundlePath];
+        ((void(*)(id,SEL,id,id,id))objc_msgSend)(cls, sel, url, opts, completion);
+    } else {
+        ((void(*)(id,SEL,id,id,id))objc_msgSend)(cls, sel, bundlePath, opts, completion);
+    }
+
+    // Wait up to 120 s for installd to finish.
+    intptr_t timedOut = dispatch_semaphore_wait(
+        sem, dispatch_time(DISPATCH_TIME_NOW, 120LL * NSEC_PER_SEC));
+
+    if (timedOut) {
+        printf("[ipa] MIInstaller timed out\n");
+        if (outErr) *outErr = [NSError errorWithDomain:@"IPAInstaller"
+                               code:-1 userInfo:@{NSLocalizedDescriptionKey:@"MIInstaller timed out"}];
+        return NO;
+    }
+
+    if (blockErr) {
+        printf("[ipa] MIInstaller error: %s\n", blockErr.localizedDescription.UTF8String);
+        if (outErr) *outErr = blockErr;
+        return NO;
+    }
+
+    printf("[ipa] MIInstaller succeeded\n");
+    return YES;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -182,19 +240,15 @@ int install_app_bundle(const char *appBundlePath) {
     NSString *version    = info[@"CFBundleShortVersionString"] ?: @"1.0";
     NSString *executable = info[@"CFBundleExecutable"]     ?: bundleName;
     NSString *minOS      = info[@"MinimumOSVersion"]       ?: @"17.0";
-
     printf("[controller] bundle: %s (%s) v%s\n",
            bundleName.UTF8String, bundleID.UTF8String, version.UTF8String);
 
     // ── Step 2: copy bundle to staging dir ───────────────────────
-    // We always work from a staging copy so the original temp extract
-    // can be cleaned up and we have a stable path to hand to installd.
     NSString *uuid    = [[NSUUID UUID] UUIDString];
     NSString *destDir = [CTRL_STAGING_DIR stringByAppendingPathComponent:uuid];
     NSString *destApp = [destDir stringByAppendingPathComponent:appName];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    [fm createDirectoryAtPath:CTRL_STAGING_DIR
-       withIntermediateDirectories:YES attributes:nil error:nil];
+    [[NSFileManager defaultManager] createDirectoryAtPath:CTRL_STAGING_DIR
+     withIntermediateDirectories:YES attributes:nil error:nil];
 
     printf("[controller] install: src=%s uuid=%s\n", appBundlePath, uuid.UTF8String);
 
@@ -204,83 +258,96 @@ int install_app_bundle(const char *appBundlePath) {
         return copyErr;
     }
     printf("[controller] staging copy done -> %s\n", destApp.UTF8String);
-
-    // Write MCM metadata into the staging container (helps the LS fallback).
     write_container_metadata(destDir, bundleID, uuid);
 
-    // ── Step 3: MobileInstallationInstall (primary) ───────────────
-    // installd runs as root and handles the full install pipeline:
-    //   • code-signature verification
-    //   • canonical container creation in /var/containers/Bundle/Application/
-    //   • file copy (as root)
-    //   • LaunchServices registration
-    //
-    // After sbx_escape() our task holds launchd's entitlement set
-    // (com.apple.private.MobileInstallation.allowSelfManagement), so
-    // installd accepts the request even though our UID is 501.
+    // ── Step 3: load MobileInstallation.framework (needed for both ──
+    //            MIInstaller and the C function)
+    resolve_mi_install();   // side-effect: dlopen with RTLD_GLOBAL
+
+    NSDictionary *miOpts = @{
+        @"ApplicationType": @"User",
+        @"PackageType":     @"Developer",
+    };
+
     BOOL registered = NO;
 
-    MobileInstallationInstall_t miInstall = load_mi_install();
-    if (miInstall) {
-        NSDictionary *opts = @{
-            @"ApplicationType": @"User",
-            @"PackageType":     @"Developer",
-        };
-        printf("[controller] calling MobileInstallationInstall...\n");
-        int mir = miInstall((__bridge CFStringRef)destApp,
-                            (__bridge CFDictionaryRef)opts,
-                            mi_progress, NULL);
-        printf("[controller] MobileInstallationInstall returned %d\n", mir);
-        registered = (mir == 0);
-    } else {
-        printf("[controller] MobileInstallation not available — falling back to LS\n");
+    // ── Step 3a: MIInstaller (iOS 17+ class, preferred) ──────────
+    NSError *miErr = nil;
+    registered = try_mi_installer(destApp, miOpts, &miErr);
+
+    // ── Step 3b: MobileInstallationInstall C function ─────────────
+    if (!registered) {
+        MobileInstallationInstall_t miFn = resolve_mi_install();
+        if (miFn) {
+            printf("[controller] calling MobileInstallationInstall...\n");
+            int r = miFn((__bridge CFStringRef)destApp,
+                         (__bridge CFDictionaryRef)miOpts,
+                         mi_c_progress, NULL);
+            printf("[controller] MobileInstallationInstall returned %d\n", r);
+            registered = (r == 0);
+        }
     }
 
     // ── Step 4: LSApplicationWorkspace fallback ───────────────────
     if (!registered) {
-        Class ws_cls = NSClassFromString(@"LSApplicationWorkspace");
-        id ws = [ws_cls performSelector:@selector(defaultWorkspace)];
+        printf("[controller] trying LSApplicationWorkspace fallback\n");
+        Class wsCls = NSClassFromString(@"LSApplicationWorkspace");
+        id ws = [wsCls performSelector:@selector(defaultWorkspace)];
 
-        NSDictionary *appDict = @{
-            @"Path":                destApp,
-            @"ApplicationType":     @"User",
-            @"CFBundleIdentifier":  bundleID,
-            @"CFBundleDisplayName": bundleName,
-            @"CFBundleName":        bundleName,
-            @"CFBundleVersion":     version,
-            @"CFBundleExecutable":  executable,
-            @"MinimumOSVersion":    minOS,
-            @"IsDeletable":         @YES,
-            @"IsUpgradeable":       @YES,
-            @"LSInstallType":       @(1),
-        };
-
-        SEL regSel = NSSelectorFromString(@"registerApplicationDictionary:");
-        if ([ws respondsToSelector:regSel]) {
-            registered = ((BOOL(*)(id,SEL,id))objc_msgSend)(ws, regSel, appDict);
-            printf("[controller] registerApplicationDictionary: %s\n",
-                   registered ? "YES" : "NO");
+        // Block-based install API (iOS 16+).
+        SEL blkSel = NSSelectorFromString(@"installPackageAtPath:withOptions:completion:");
+        if ([ws respondsToSelector:blkSel]) {
+            dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+            __block BOOL blkResult = NO;
+            void (^cb)(BOOL, NSError *) = ^(BOOL ok, NSError *err) {
+                blkResult = ok;
+                if (err) printf("[ipa/ls] installPackageAtPath error: %s\n",
+                                err.localizedDescription.UTF8String);
+                dispatch_semaphore_signal(sem);
+            };
+            ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, blkSel, destApp, miOpts, cb);
+            dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, 120LL*NSEC_PER_SEC));
+            registered = blkResult;
+            printf("[ipa/ls] installPackageAtPath: %s\n", registered ? "YES" : "NO");
         }
 
-        // LS rebuild as last resort — works if app is at canonical path
-        // (it won't be here since we're in staging, but try anyway).
+        // Dictionary-based fallback (older API, staging path unlikely to work but try).
+        if (!registered) {
+            NSDictionary *appDict = @{
+                @"Path":                destApp,
+                @"ApplicationType":     @"User",
+                @"CFBundleIdentifier":  bundleID,
+                @"CFBundleDisplayName": bundleName,
+                @"CFBundleName":        bundleName,
+                @"CFBundleVersion":     version,
+                @"CFBundleExecutable":  executable,
+                @"MinimumOSVersion":    minOS,
+                @"IsDeletable":         @YES,
+                @"IsUpgradeable":       @YES,
+                @"LSInstallType":       @(1),
+            };
+            SEL regSel = NSSelectorFromString(@"registerApplicationDictionary:");
+            if ([ws respondsToSelector:regSel]) {
+                registered = ((BOOL(*)(id,SEL,id))objc_msgSend)(ws, regSel, appDict);
+                printf("[ipa/ls] registerApplicationDictionary: %s\n",
+                       registered ? "YES" : "NO");
+            }
+        }
+
+        // LS rebuild as last-resort hint.
         if (!registered) {
             SEL rebuildSel = NSSelectorFromString(
                 @"_LSPrivateRebuildApplicationDatabasesForSystemApps:registeringPlugins:");
-            if ([ws respondsToSelector:rebuildSel]) {
-                printf("[controller] triggering LS database rebuild\n");
+            if ([ws respondsToSelector:rebuildSel])
                 ((void(*)(id,SEL,BOOL,BOOL))objc_msgSend)(ws, rebuildSel, YES, YES);
-                // Rebuild is asynchronous; treat it as a best-effort.
-            }
         }
     }
 
     // ── Step 5: SpringBoard notification ─────────────────────────
     if (registered) {
         notify_post("com.apple.LaunchServices.applicationCacheInvalidated");
-
-        Class ws_cls = NSClassFromString(@"LSApplicationWorkspace");
-        id ws = [ws_cls performSelector:@selector(defaultWorkspace)];
+        Class wsCls = NSClassFromString(@"LSApplicationWorkspace");
+        id ws = [wsCls performSelector:@selector(defaultWorkspace)];
         SEL notifySel = NSSelectorFromString(@"_sendApplicationInstalledNotification:");
         if ([ws respondsToSelector:notifySel])
             ((void(*)(id,SEL,id))objc_msgSend)(ws, notifySel, bundleID);
@@ -292,8 +359,7 @@ int install_app_bundle(const char *appBundlePath) {
             stringArrayForKey:@"ctrl_installed_apps"] mutableCopy]
         ?: [NSMutableArray new];
     if (![installed containsObject:bundleID]) [installed addObject:bundleID];
-    [NSUserDefaults.standardUserDefaults setObject:installed
-                                            forKey:@"ctrl_installed_apps"];
+    [NSUserDefaults.standardUserDefaults setObject:installed forKey:@"ctrl_installed_apps"];
 
     printf("[controller] install complete: %s (%s) -> %s (registered=%s)\n",
            bundleName.UTF8String, bundleID.UTF8String,
@@ -302,10 +368,14 @@ int install_app_bundle(const char *appBundlePath) {
     return registered ? 0 : -4;
 }
 
+// ─────────────────────────────────────────────────────────────────
+//  Uninstall
+// ─────────────────────────────────────────────────────────────────
+
 int uninstall_app(const char *bundleID_cstr) {
     NSString *bid = [NSString stringWithUTF8String:bundleID_cstr];
-    Class ws_cls = NSClassFromString(@"LSApplicationWorkspace");
-    id ws = [ws_cls performSelector:@selector(defaultWorkspace)];
+    Class wsCls = NSClassFromString(@"LSApplicationWorkspace");
+    id ws = [wsCls performSelector:@selector(defaultWorkspace)];
     BOOL ok = [[ws performSelector:@selector(uninstallApplication:withOptions:)
                         withObject:bid withObject:nil] boolValue];
     if (ok) {
@@ -314,15 +384,13 @@ int uninstall_app(const char *bundleID_cstr) {
                 stringArrayForKey:@"ctrl_installed_apps"] mutableCopy]
             ?: [NSMutableArray new];
         [installed removeObject:bid];
-        [NSUserDefaults.standardUserDefaults setObject:installed
-                                                forKey:@"ctrl_installed_apps"];
-        // Clean up staging leftovers.
+        [NSUserDefaults.standardUserDefaults setObject:installed forKey:@"ctrl_installed_apps"];
         NSFileManager *fm = [NSFileManager defaultManager];
         for (NSString *d in [fm contentsOfDirectoryAtPath:CTRL_STAGING_DIR error:nil] ?: @[]) {
             NSString *full = [CTRL_STAGING_DIR stringByAppendingPathComponent:d];
             for (NSString *app in [fm contentsOfDirectoryAtPath:full error:nil] ?: @[]) {
                 NSString *ip = [[[full stringByAppendingPathComponent:app]
-                                    stringByAppendingPathComponent:@"Info.plist"] copy];
+                                 stringByAppendingPathComponent:@"Info.plist"] copy];
                 NSDictionary *i2 = [NSDictionary dictionaryWithContentsOfFile:ip];
                 if ([i2[@"CFBundleIdentifier"] isEqualToString:bid])
                     [fm removeItemAtPath:full error:nil];
