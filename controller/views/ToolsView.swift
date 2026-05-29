@@ -24,6 +24,9 @@ struct ToolsView: View {
                         LocationSpooferCard()
                             .padding(.horizontal)
 
+                        KernelDebugCard()
+                            .padding(.horizontal)
+
                         SystemToolsCard()
                             .padding(.horizontal)
 
@@ -279,5 +282,47 @@ struct ToolCardContainer<Content: View>: View {
                         .strokeBorder(Color.purple.opacity(0.25), lineWidth: 1)
                 )
         )
+    }
+}
+
+
+// MARK: - Kernel Debugger Card (nav entry point)
+struct KernelDebugCard: View {
+    @EnvironmentObject private var mgr: controllermgr
+
+    var body: some View {
+        NavigationLink(destination: KernelDebugView()) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.cyan.opacity(0.15))
+                        .frame(width: 46, height: 46)
+                    Image(systemName: "ladybug.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.cyan)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Kernel Debugger")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Text("Memory · PPL map · Structure inspector")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.gray)
+            }
+            .padding(18)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color(white: 0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(Color.cyan.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
     }
 }
