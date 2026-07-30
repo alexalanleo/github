@@ -27,6 +27,7 @@
 
 #import <Foundation/Foundation.h>
 #include "darksword.h"
+#include "sbx.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <dlfcn.h>
