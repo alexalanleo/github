@@ -27,8 +27,7 @@
 
 #import <Foundation/Foundation.h>
 #include "darksword.h"
-#import <objc/message.h>
-#include <dlfcn.h>
+#import <objc/message.h>#import <objc/runtime.h>#include <dlfcn.h>
 #include <notify.h>
 
 #define CTRL_STAGING_DIR @"/var/mobile/Library/ctrl_staging"
@@ -121,12 +120,12 @@ static void mi_c_progress(CFDictionaryRef info, void *ctx) {
     printf("[ipa/installd] %s %.0f%%\n", buf, d);
 }
 
-static void *load_mobile_installation_framework(void) {
+static BOOL try_load_mobile_installation_framework(void) {
     static dispatch_once_t once;
-    static void *handle = NULL;
+    static BOOL loaded = NO;
     dispatch_once(&once, ^{
         const char *path = "/System/Library/PrivateFrameworks/MobileInstallation.framework/MobileInstallation";
-        handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
+        void *handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
         if (!handle) {
             handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
         }
@@ -136,9 +135,9 @@ static void *load_mobile_installation_framework(void) {
             NSString *bundlePath = @"/System/Library/PrivateFrameworks/MobileInstallation.framework";
             NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
             if (bundle) {
-                BOOL loaded = [bundle load];
-                printf("[ipa] NSBundle load MobileInstallation.framework %s\n", loaded ? "succeeded" : "failed");
-                if (loaded) {
+                BOOL bundleLoaded = [bundle load];
+                printf("[ipa] NSBundle load MobileInstallation.framework %s\n", bundleLoaded ? "succeeded" : "failed");
+                if (bundleLoaded) {
                     handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
                     if (!handle) {
                         const char *err2 = dlerror();
@@ -149,19 +148,25 @@ static void *load_mobile_installation_framework(void) {
                 printf("[ipa] NSBundle bundleWithPath failed for %s\n", bundlePath.UTF8String);
             }
         }
+        loaded = (handle != NULL);
     });
-    return handle;
+    return loaded;
 }
 
 static MobileInstallationInstall_t resolve_mi_install(void) {
-    // Ensure the framework is mapped so RTLD_DEFAULT can find its symbols.
-    load_mobile_installation_framework();
+    if (!try_load_mobile_installation_framework()) {
+        printf("[ipa] MobileInstallation.framework could not be loaded\n");
+    }
 
     MobileInstallationInstall_t fn =
         (MobileInstallationInstall_t)dlsym(RTLD_DEFAULT, "MobileInstallationInstall");
     if (fn) { printf("[ipa] MobileInstallationInstall found via RTLD_DEFAULT\n"); return fn; }
 
-    void *h = load_mobile_installation_framework();
+    const char *path = "/System/Library/PrivateFrameworks/MobileInstallation.framework/MobileInstallation";
+    void *h = dlopen(path, RTLD_LAZY | RTLD_NOLOAD);
+    if (!h) {
+        h = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
+    }
     if (h) {
         fn = (MobileInstallationInstall_t)dlsym(h, "MobileInstallationInstall");
         if (fn) { printf("[ipa] MobileInstallationInstall found via dlopen handle\n"); return fn; }
@@ -177,16 +182,23 @@ static MobileInstallationInstall_t resolve_mi_install(void) {
 //  Returns YES if the class+selector exist; fills *outErr on failure.
 // ─────────────────────────────────────────────────────────────────
 
+static BOOL classRespondsToSelector(Class cls, SEL sel) {
+    if (!cls || !sel) return NO;
+    return class_respondsToSelector(cls, sel) || [cls respondsToSelector:sel];
+}
+
 static BOOL try_mi_installer(NSString *bundlePath, NSDictionary *opts,
                               NSError **outErr) {
     // The framework must be loaded first (done by resolve_mi_install above).
     Class cls = NSClassFromString(@"MIInstaller");
     if (!cls) {
-        // Some iOS 18 builds renamed it.
         cls = NSClassFromString(@"MIPackageInstaller");
     }
     if (!cls) {
         cls = NSClassFromString(@"MIAppInstaller");
+    }
+    if (!cls) {
+        cls = NSClassFromString(@"MIInstallManager");
     }
     if (!cls) {
         printf("[ipa] MIInstaller class not found\n");
@@ -194,15 +206,19 @@ static BOOL try_mi_installer(NSString *bundlePath, NSDictionary *opts,
     }
 
     SEL sel = NSSelectorFromString(@"installPackageAtPath:options:completion:");
-    if (![cls respondsToSelector:sel]) {
-        printf("[ipa] MIInstaller does not respond to installPackageAtPath:options:completion:\n");
-        // Try the URL variant.
+    if (!classRespondsToSelector(cls, sel)) {
         SEL urlSel = NSSelectorFromString(@"installPackageAtURL:options:completion:");
-        if (![cls respondsToSelector:urlSel]) {
-            printf("[ipa] MIInstaller: no suitable install selector found\n");
-            return NO;
+        if (classRespondsToSelector(cls, urlSel)) {
+            sel = urlSel;
+        } else {
+            SEL altSel = NSSelectorFromString(@"installPackageAtURL:options:userInfo:completion:");
+            if (classRespondsToSelector(cls, altSel)) {
+                sel = altSel;
+            } else {
+                printf("[ipa] MIInstaller: no suitable install selector found\n");
+                return NO;
+            }
         }
-        sel = urlSel;
     }
 
     printf("[ipa] calling %s %s\n", NSStringFromClass(cls).UTF8String,
@@ -217,10 +233,15 @@ static BOOL try_mi_installer(NSString *bundlePath, NSDictionary *opts,
         dispatch_semaphore_signal(sem);
     };
 
-    // +installPackageAtPath:options:completion: or +installPackageAtURL:options:completion:
-    if (sel == NSSelectorFromString(@"installPackageAtURL:options:completion:")) {
+    // Call the selector with the correct signature.
+    if (sel == NSSelectorFromString(@"installPackageAtURL:options:completion:") ||
+        sel == NSSelectorFromString(@"installPackageAtURL:options:userInfo:completion:")) {
         NSURL *url = [NSURL fileURLWithPath:bundlePath];
-        ((void(*)(id,SEL,id,id,id))objc_msgSend)(cls, sel, url, opts, completion);
+        if (sel == NSSelectorFromString(@"installPackageAtURL:options:userInfo:completion:")) {
+            ((void(*)(id,SEL,id,id,id,id))objc_msgSend)(cls, sel, url, opts, nil, completion);
+        } else {
+            ((void(*)(id,SEL,id,id,id))objc_msgSend)(cls, sel, url, opts, completion);
+        }
     } else {
         ((void(*)(id,SEL,id,id,id))objc_msgSend)(cls, sel, bundlePath, opts, completion);
     }
@@ -324,45 +345,81 @@ int install_app_bundle(const char *appBundlePath) {
     if (!registered) {
         printf("[controller] trying LSApplicationWorkspace fallback\n");
         Class wsCls = NSClassFromString(@"LSApplicationWorkspace");
-        id ws = [wsCls performSelector:@selector(defaultWorkspace)];
+        if (!wsCls) {
+            printf("[ipa/ls] LSApplicationWorkspace class not available\n");
+        } else {
+            id ws = nil;
+            if ([wsCls respondsToSelector:@selector(defaultWorkspace)]) {
+                ws = [wsCls performSelector:@selector(defaultWorkspace)];
+            }
+            if (!ws) {
+                printf("[ipa/ls] defaultWorkspace not available\n");
+            } else {
+                NSArray<NSString *> *selectorNames = @[
+                    @"installPackageAtPath:withOptions:completion:",
+                    @"installApplicationAtURL:withOptions:completion:",
+                    @"installApplication:withOptions:completion:",
+                    @"installApplication:withOptions:error:",
+                ];
+                for (NSString *selectorName in selectorNames) {
+                    if (registered) break;
+                    SEL sel = NSSelectorFromString(selectorName);
+                    if (![ws respondsToSelector:sel]) continue;
+                    printf("[ipa/ls] trying %s\n", selectorName.UTF8String);
+                    if ([selectorName isEqualToString:@"installPackageAtPath:withOptions:completion:"] ||
+                        [selectorName isEqualToString:@"installApplicationAtURL:withOptions:completion:"] ||
+                        [selectorName isEqualToString:@"installApplication:withOptions:completion:"]) {
+                        dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+                        __block BOOL blkResult = NO;
+                        void (^cb)(BOOL, NSError *) = ^(BOOL ok, NSError *err) {
+                            blkResult = ok;
+                            if (err) printf("[ipa/ls] %s error: %s\n", selectorName.UTF8String,
+                                            err.localizedDescription.UTF8String);
+                            dispatch_semaphore_signal(sem);
+                        };
+                        if ([selectorName isEqualToString:@"installApplicationAtURL:withOptions:completion:"]) {
+                            NSURL *url = [NSURL fileURLWithPath:destApp];
+                            ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, sel, url, miOpts, cb);
+                        } else if ([selectorName isEqualToString:@"installApplication:withOptions:completion:"]) {
+                            ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, sel, destApp, miOpts, cb);
+                        } else {
+                            ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, sel, destApp, miOpts, cb);
+                        }
+                        dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, 120LL*NSEC_PER_SEC));
+                        registered = blkResult;
+                        printf("[ipa/ls] %s: %s\n", selectorName.UTF8String, registered ? "YES" : "NO");
+                    } else if ([selectorName isEqualToString:@"installApplication:withOptions:error:"]) {
+                        NSError *error = nil;
+                        registered = ((BOOL(*)(id,SEL,id,id,NSError **))objc_msgSend)(ws, sel, destApp, miOpts, &error);
+                        printf("[ipa/ls] installApplication:withOptions:error: %s\n", registered ? "YES" : "NO");
+                        if (error) printf("[ipa/ls] error: %s\n", error.localizedDescription.UTF8String);
+                    }
+                }
 
-        // Block-based install API (iOS 16+).
-        SEL blkSel = NSSelectorFromString(@"installPackageAtPath:withOptions:completion:");
-        if ([ws respondsToSelector:blkSel]) {
-            dispatch_semaphore_t sem = dispatch_semaphore_create(0);
-            __block BOOL blkResult = NO;
-            void (^cb)(BOOL, NSError *) = ^(BOOL ok, NSError *err) {
-                blkResult = ok;
-                if (err) printf("[ipa/ls] installPackageAtPath error: %s\n",
-                                err.localizedDescription.UTF8String);
-                dispatch_semaphore_signal(sem);
-            };
-            ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, blkSel, destApp, miOpts, cb);
-            dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, 120LL*NSEC_PER_SEC));
-            registered = blkResult;
-            printf("[ipa/ls] installPackageAtPath: %s\n", registered ? "YES" : "NO");
-        }
-
-        // Dictionary-based fallback (older API, staging path unlikely to work but try).
-        if (!registered) {
-            NSDictionary *appDict = @{
-                @"Path":                destApp,
-                @"ApplicationType":     @"User",
-                @"CFBundleIdentifier":  bundleID,
-                @"CFBundleDisplayName": bundleName,
-                @"CFBundleName":        bundleName,
-                @"CFBundleVersion":     version,
-                @"CFBundleExecutable":  executable,
-                @"MinimumOSVersion":    minOS,
-                @"IsDeletable":         @YES,
-                @"IsUpgradeable":       @YES,
-                @"LSInstallType":       @(1),
-            };
-            SEL regSel = NSSelectorFromString(@"registerApplicationDictionary:");
-            if ([ws respondsToSelector:regSel]) {
-                registered = ((BOOL(*)(id,SEL,id))objc_msgSend)(ws, regSel, appDict);
-                printf("[ipa/ls] registerApplicationDictionary: %s\n",
-                       registered ? "YES" : "NO");
+                if (!registered) {
+                    NSDictionary *appDict = @{
+                        @"Path":                destApp,
+                        @"ApplicationType":     @"User",
+                        @"CFBundleIdentifier":  bundleID,
+                        @"CFBundleDisplayName": bundleName,
+                        @"CFBundleName":        bundleName,
+                        @"CFBundleVersion":     version,
+                        @"CFBundleExecutable":  executable,
+                        @"MinimumOSVersion":    minOS,
+                        @"IsDeletable":         @YES,
+                        @"IsUpgradeable":       @YES,
+                        @"LSInstallType":       @(1),
+                        @"Container":           destDir,
+                    };
+                    SEL regSel = NSSelectorFromString(@"registerApplicationDictionary:");
+                    if ([ws respondsToSelector:regSel]) {
+                        registered = ((BOOL(*)(id,SEL,id))objc_msgSend)(ws, regSel, appDict);
+                        printf("[ipa/ls] registerApplicationDictionary: %s\n",
+                               registered ? "YES" : "NO");
+                    } else {
+                        printf("[ipa/ls] LSApplicationWorkspace does not support registerApplicationDictionary:\n");
+                    }
+                }
             }
         }
 
