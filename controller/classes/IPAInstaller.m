@@ -27,7 +27,9 @@
 
 #import <Foundation/Foundation.h>
 #include "darksword.h"
-#import <objc/message.h>#import <objc/runtime.h>#include <dlfcn.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
+#include <dlfcn.h>
 #include <notify.h>
 
 #define CTRL_STAGING_DIR @"/var/mobile/Library/ctrl_staging"
