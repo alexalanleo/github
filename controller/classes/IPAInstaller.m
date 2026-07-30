@@ -20,9 +20,9 @@
 //    2. MobileInstallationInstall via RTLD_DEFAULT              (shared-cache symbol)
 //    3. MobileInstallationInstall via dlopen handle
 //
-//  Auth: sbx_escape() copies launchd's full entitlement set into our task, including
-//  com.apple.private.MobileInstallation.allowSelfManagement, so installd's XPC
-//  authorization check passes for UID=501.
+//  Auth: sbx_elevate() copies launchd's full ucred/sandbox label into our task,
+//  including com.apple.private.MobileInstallation.allowSelfManagement, so installd's
+//  XPC authorization check passes for UID=501.
 //
 
 #import <Foundation/Foundation.h>
@@ -160,9 +160,20 @@ static MobileInstallationInstall_t resolve_mi_install(void) {
         printf("[ipa] MobileInstallation.framework could not be loaded\n");
     }
 
-    MobileInstallationInstall_t fn =
-        (MobileInstallationInstall_t)dlsym(RTLD_DEFAULT, "MobileInstallationInstall");
-    if (fn) { printf("[ipa] MobileInstallationInstall found via RTLD_DEFAULT\n"); return fn; }
+    const char *symbols[] = {
+        "MobileInstallationInstall",
+        "_MobileInstallationInstall",
+        NULL
+    };
+
+    for (const char **sym = symbols; *sym; sym++) {
+        MobileInstallationInstall_t fn =
+            (MobileInstallationInstall_t)dlsym(RTLD_DEFAULT, *sym);
+        if (fn) {
+            printf("[ipa] %s found via RTLD_DEFAULT\n", *sym);
+            return fn;
+        }
+    }
 
     const char *path = "/System/Library/PrivateFrameworks/MobileInstallation.framework/MobileInstallation";
     void *h = dlopen(path, RTLD_LAZY | RTLD_NOLOAD);
@@ -170,8 +181,13 @@ static MobileInstallationInstall_t resolve_mi_install(void) {
         h = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
     }
     if (h) {
-        fn = (MobileInstallationInstall_t)dlsym(h, "MobileInstallationInstall");
-        if (fn) { printf("[ipa] MobileInstallationInstall found via dlopen handle\n"); return fn; }
+        for (const char **sym = symbols; *sym; sym++) {
+            MobileInstallationInstall_t fn = (MobileInstallationInstall_t)dlsym(h, *sym);
+            if (fn) {
+                printf("[ipa] %s found via dlopen handle\n", *sym);
+                return fn;
+            }
+        }
     }
 
     printf("[ipa] MobileInstallationInstall not found\n");
@@ -279,6 +295,12 @@ int install_app_bundle(const char *appBundlePath) {
         return -1;
     }
 
+    int sbxStatus = sbx_elevate();
+    if (sbxStatus != 0) {
+        printf("[controller] install: sbx_elevate failed %d\n", sbxStatus);
+        return -1;
+    }
+
     NSString *srcPath = [NSString stringWithUTF8String:appBundlePath];
     NSString *appName = [srcPath lastPathComponent];
 
@@ -359,7 +381,10 @@ int install_app_bundle(const char *appBundlePath) {
             } else {
                 NSArray<NSString *> *selectorNames = @[
                     @"installPackageAtPath:withOptions:completion:",
+                    @"installPackageAtURL:withOptions:completion:",
+                    @"installPackageAtURL:options:completion:",
                     @"installApplicationAtURL:withOptions:completion:",
+                    @"installApplicationAtURL:withOptions:error:",
                     @"installApplication:withOptions:completion:",
                     @"installApplication:withOptions:error:",
                 ];
@@ -369,6 +394,8 @@ int install_app_bundle(const char *appBundlePath) {
                     if (![ws respondsToSelector:sel]) continue;
                     printf("[ipa/ls] trying %s\n", selectorName.UTF8String);
                     if ([selectorName isEqualToString:@"installPackageAtPath:withOptions:completion:"] ||
+                        [selectorName isEqualToString:@"installPackageAtURL:withOptions:completion:"] ||
+                        [selectorName isEqualToString:@"installPackageAtURL:options:completion:"] ||
                         [selectorName isEqualToString:@"installApplicationAtURL:withOptions:completion:"] ||
                         [selectorName isEqualToString:@"installApplication:withOptions:completion:"]) {
                         dispatch_semaphore_t sem = dispatch_semaphore_create(0);
@@ -379,22 +406,45 @@ int install_app_bundle(const char *appBundlePath) {
                                             err.localizedDescription.UTF8String);
                             dispatch_semaphore_signal(sem);
                         };
-                        if ([selectorName isEqualToString:@"installApplicationAtURL:withOptions:completion:"]) {
+                        if ([selectorName isEqualToString:@"installPackageAtURL:withOptions:completion:"] ||
+                            [selectorName isEqualToString:@"installPackageAtURL:options:completion:"] ||
+                            [selectorName isEqualToString:@"installApplicationAtURL:withOptions:completion:"]) {
                             NSURL *url = [NSURL fileURLWithPath:destApp];
                             ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, sel, url, miOpts, cb);
                         } else if ([selectorName isEqualToString:@"installApplication:withOptions:completion:"]) {
-                            ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, sel, destApp, miOpts, cb);
+                            NSURL *url = [NSURL fileURLWithPath:destApp];
+                            ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, sel, url, miOpts, cb);
                         } else {
                             ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, sel, destApp, miOpts, cb);
                         }
                         dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, 120LL*NSEC_PER_SEC));
                         registered = blkResult;
                         printf("[ipa/ls] %s: %s\n", selectorName.UTF8String, registered ? "YES" : "NO");
+                    } else if ([selectorName isEqualToString:@"installApplicationAtURL:withOptions:error:"]) {
+                        NSError *error = nil;
+                        NSURL *url = [NSURL fileURLWithPath:destApp];
+                        registered = ((BOOL(*)(id,SEL,id,id,NSError **))objc_msgSend)(ws, sel, url, miOpts, &error);
+                        printf("[ipa/ls] installApplicationAtURL:withOptions:error: %s\n", registered ? "YES" : "NO");
+                        if (error) printf("[ipa/ls] error: %s\n", error.localizedDescription.UTF8String);
                     } else if ([selectorName isEqualToString:@"installApplication:withOptions:error:"]) {
                         NSError *error = nil;
                         registered = ((BOOL(*)(id,SEL,id,id,NSError **))objc_msgSend)(ws, sel, destApp, miOpts, &error);
                         printf("[ipa/ls] installApplication:withOptions:error: %s\n", registered ? "YES" : "NO");
                         if (error) printf("[ipa/ls] error: %s\n", error.localizedDescription.UTF8String);
+                    } else if ([selectorName isEqualToString:@"installPackageAtURL:options:completion:"]) {
+                        dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+                        __block BOOL blkResult = NO;
+                        void (^cb)(BOOL, NSError *) = ^(BOOL ok, NSError *err) {
+                            blkResult = ok;
+                            if (err) printf("[ipa/ls] %s error: %s\n", selectorName.UTF8String,
+                                            err.localizedDescription.UTF8String);
+                            dispatch_semaphore_signal(sem);
+                        };
+                        NSURL *url = [NSURL fileURLWithPath:destApp];
+                        ((void(*)(id,SEL,id,id,id))objc_msgSend)(ws, sel, url, miOpts, cb);
+                        dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, 120LL*NSEC_PER_SEC));
+                        registered = blkResult;
+                        printf("[ipa/ls] %s: %s\n", selectorName.UTF8String, registered ? "YES" : "NO");
                     }
                 }
 

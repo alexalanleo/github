@@ -525,7 +525,14 @@ final class controllermgr: ObservableObject {
                 DispatchQueue.main.async { completion(false, "Sandbox escape failed (\(sbx))") }
                 return
             }
-            progress(0.05, "Opening IPA...")
+            let elev = sbx_elevate()
+            if elev != 0 {
+                globallogger.log("[IPA] Sandbox elevate failed: \(elev)")
+                DispatchQueue.main.async { completion(false, "Sandbox elevate failed (\(elev))") }
+                return
+            }
+            progress(0.05, "Elevating sandbox...")
+            progress(0.1, "Opening IPA...")
             let tmpDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ctrl_install_\(UUID().uuidString)")
             do {
                 try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
