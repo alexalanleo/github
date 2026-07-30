@@ -347,10 +347,10 @@ int install_app_bundle(const char *appBundlePath) {
     if (!registered) {
         printf("[controller] trying LSApplicationWorkspace fallback\n");
         Class wsCls = NSClassFromString(@"LSApplicationWorkspace");
+        id ws = nil;
         if (!wsCls) {
             printf("[ipa/ls] LSApplicationWorkspace class not available\n");
         } else {
-            id ws = nil;
             if ([wsCls respondsToSelector:@selector(defaultWorkspace)]) {
                 ws = [wsCls performSelector:@selector(defaultWorkspace)];
             }
@@ -429,7 +429,7 @@ int install_app_bundle(const char *appBundlePath) {
         if (!registered) {
             SEL rebuildSel = NSSelectorFromString(
                 @"_LSPrivateRebuildApplicationDatabasesForSystemApps:registeringPlugins:");
-            if ([ws respondsToSelector:rebuildSel])
+            if (ws && [ws respondsToSelector:rebuildSel])
                 ((void(*)(id,SEL,BOOL,BOOL))objc_msgSend)(ws, rebuildSel, YES, YES);
         }
     }
