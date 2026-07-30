@@ -121,23 +121,52 @@ static void mi_c_progress(CFDictionaryRef info, void *ctx) {
     printf("[ipa/installd] %s %.0f%%\n", buf, d);
 }
 
+static void *load_mobile_installation_framework(void) {
+    static dispatch_once_t once;
+    static void *handle = NULL;
+    dispatch_once(&once, ^{
+        const char *path = "/System/Library/PrivateFrameworks/MobileInstallation.framework/MobileInstallation";
+        handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
+        if (!handle) {
+            handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+        }
+        if (!handle) {
+            const char *err = dlerror();
+            printf("[ipa] dlopen MobileInstallation failed: %s\n", err ?: "(unknown)");
+            NSString *bundlePath = @"/System/Library/PrivateFrameworks/MobileInstallation.framework";
+            NSBundle *bundle = [NSBundle bundleWithPath:bundlePath];
+            if (bundle) {
+                BOOL loaded = [bundle load];
+                printf("[ipa] NSBundle load MobileInstallation.framework %s\n", loaded ? "succeeded" : "failed");
+                if (loaded) {
+                    handle = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
+                    if (!handle) {
+                        const char *err2 = dlerror();
+                        printf("[ipa] dlopen MobileInstallation after NSBundle load failed: %s\n", err2 ?: "(unknown)");
+                    }
+                }
+            } else {
+                printf("[ipa] NSBundle bundleWithPath failed for %s\n", bundlePath.UTF8String);
+            }
+        }
+    });
+    return handle;
+}
+
 static MobileInstallationInstall_t resolve_mi_install(void) {
     // Ensure the framework is mapped so RTLD_DEFAULT can find its symbols.
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        dlopen("/System/Library/PrivateFrameworks/"
-               "MobileInstallation.framework/MobileInstallation",
-               RTLD_LAZY | RTLD_GLOBAL);
-    });
-    // Shared-cache lookup (preferred on iOS 17+).
+    load_mobile_installation_framework();
+
     MobileInstallationInstall_t fn =
         (MobileInstallationInstall_t)dlsym(RTLD_DEFAULT, "MobileInstallationInstall");
     if (fn) { printf("[ipa] MobileInstallationInstall found via RTLD_DEFAULT\n"); return fn; }
-    // Per-handle lookup (fallback).
-    void *h = dlopen("/System/Library/PrivateFrameworks/"
-                     "MobileInstallation.framework/MobileInstallation", RTLD_LAZY);
-    if (h) fn = (MobileInstallationInstall_t)dlsym(h, "MobileInstallationInstall");
-    if (fn) { printf("[ipa] MobileInstallationInstall found via dlopen handle\n"); return fn; }
+
+    void *h = load_mobile_installation_framework();
+    if (h) {
+        fn = (MobileInstallationInstall_t)dlsym(h, "MobileInstallationInstall");
+        if (fn) { printf("[ipa] MobileInstallationInstall found via dlopen handle\n"); return fn; }
+    }
+
     printf("[ipa] MobileInstallationInstall not found\n");
     return NULL;
 }
@@ -155,6 +184,9 @@ static BOOL try_mi_installer(NSString *bundlePath, NSDictionary *opts,
     if (!cls) {
         // Some iOS 18 builds renamed it.
         cls = NSClassFromString(@"MIPackageInstaller");
+    }
+    if (!cls) {
+        cls = NSClassFromString(@"MIAppInstaller");
     }
     if (!cls) {
         printf("[ipa] MIInstaller class not found\n");
