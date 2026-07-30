@@ -28,6 +28,7 @@
 #import <Foundation/Foundation.h>
 #include "darksword.h"
 #include "sbx.h"
+#include "root.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <dlfcn.h>
@@ -299,7 +300,6 @@ int install_app_bundle(const char *appBundlePath) {
     int sbxStatus = sbx_elevate();
     if (sbxStatus != 0) {
         printf("[controller] install: sbx_elevate failed %d\n", sbxStatus);
-        return -1;
     }
 
     NSString *srcPath = [NSString stringWithUTF8String:appBundlePath];
@@ -364,6 +364,14 @@ int install_app_bundle(const char *appBundlePath) {
             printf("[controller] MobileInstallationInstall returned %d\n", r);
             registered = (r == 0);
         }
+    }
+
+    // ── Step 3c: launchd RemoteCall root install fallback ──────────
+    if (!registered) {
+        printf("[controller] trying launchd root MobileInstallation fallback...\n");
+        int r = root_mobile_install_as_launchd(destApp.UTF8String);
+        printf("[controller] root_mobile_install_as_launchd returned %d\n", r);
+        registered = (r == 0);
     }
 
     // ── Step 4: LSApplicationWorkspace fallback ───────────────────
